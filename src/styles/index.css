@@ -1,0 +1,122 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --color-maroon: #5C061D;
+  --color-gold: #D4AF37;
+  --color-gold-light: #F3E5AB;
+  --color-ivory: #FAF7F2;
+  --color-brown: #2A1810;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #FAF7F2;
+}
+::-webkit-scrollbar-thumb {
+  background: #C79E26;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #AA8419;
+}
+
+/* Gold Foil Text */
+.gold-text-gradient {
+  background: linear-gradient(135deg, #B58B1E 0%, #E5C258 35%, #D4AF37 70%, #997412 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.maroon-text-gradient {
+  background: linear-gradient(135deg, #4E0515 0%, #751028 50%, #5C061D 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* Royal Ornate Card Border */
+.ornate-border {
+  border: 1px solid rgba(212, 175, 55, 0.4);
+  box-shadow: 0 0 0 3px rgba(250, 247, 242, 0.9), 0 0 0 4px rgba(212, 175, 55, 0.35);
+}
+
+.ornate-border-lg {
+  border: 2px solid rgba(212, 175, 55, 0.6);
+  box-shadow: 0 0 0 6px rgba(250, 247, 242, 0.95), 0 0 0 8px rgba(212, 175, 55, 0.5);
+}
+
+/* Subtle Indian Mandap & Palace Motif Background Pattern */
+.bg-mandap-pattern {
+  background-color: #FAF7F2;
+  background-image: radial-gradient(rgba(212, 175, 55, 0.15) 1px, transparent 1px),
+    radial-gradient(rgba(92, 6, 29, 0.08) 1px, #FAF7F2 1px);
+  background-size: 40px 40px;
+  background-position: 0 0, 20px 20px;
+}
+
+.bg-palace-dark {
+  background-color: #3A040E;
+  background-image: radial-gradient(rgba(212, 175, 55, 0.2) 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+
+/* Envelope 3D Perspective */
+.perspective-1000 {
+  perspective: 1200px;
+}
+
+.preserve-3d {
+  transform-style: preserve-3d;
+}
+
+.backface-hidden {
+  backface-visibility: hidden;
+}
+
+/* Falling Petal Keyframe */
+@keyframes petalFall {
+  0% {
+    transform: translateY(-20px) rotate(0deg) scale(0.8);
+    opacity: 0;
+  }
+  15% {
+    opacity: 0.9;
+  }
+  85% {
+    opacity: 0.8;
+  }
+  100% {
+    transform: translateY(105vh) rotate(360deg) scale(1);
+    opacity: 0;
+  }
+}
+
+.animate-petal {
+  animation: petalFall linear infinite;
+  pointer-events: none;
+}
+
+/* Wax Seal Emboss */
+.wax-seal-btn {
+  background: radial-gradient(circle at 35% 35%, #9E132D, #5C061D 70%, #35020D);
+  box-shadow: 0 4px 15px rgba(58, 4, 14, 0.5), inset 0 2px 3px rgba(255, 255, 255, 0.35), inset 0 -3px 5px rgba(0, 0, 0, 0.4);
+}
+
+/* Reduced Motion Override */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .animate-petal {
+    display: none !important;
+  }
+}
