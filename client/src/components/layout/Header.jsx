@@ -1,12 +1,18 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Sparkles, Menu, X, Shield, Crown } from 'lucide-react';
+import { Sparkles, Menu, X, Shield, Crown, User, LogOut, Heart } from 'lucide-react';
 import { Button } from '../common/Button.jsx';
 import { DiyaMotif } from '../common/Motifs.jsx';
+import { useAuthStore } from '../../store/authStore.js';
 
 export const Header = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const location = useLocation();
+  const { user, isAuthenticated, logout, initAuth } = useAuthStore();
+
+  useEffect(() => {
+    initAuth();
+  }, []);
 
   const navLinks = [
     { name: 'Themes', path: '/themes' },
@@ -58,13 +64,46 @@ export const Header = () => {
           </nav>
 
           {/* Right Action Buttons */}
-          <div className="hidden md:flex items-center gap-3">
+          <div className="hidden md:flex items-center gap-2.5">
+            {isAuthenticated ? (
+              <>
+                <Link to="/dashboard">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="border-royal-gold-400 text-royal-maroon-800 hover:bg-royal-gold-100/60"
+                  >
+                    <Crown className="w-3.5 h-3.5 mr-1.5 text-royal-gold-600" />
+                    <span>My Dashboard</span>
+                  </Button>
+                </Link>
+
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={logout}
+                  className="text-royal-brown-600 hover:text-red-700 hover:bg-red-50 text-xs px-2.5"
+                  title="Sign Out"
+                >
+                  <LogOut className="w-3.5 h-3.5" />
+                </Button>
+              </>
+            ) : (
+              <Link to="/login">
+                <Button variant="ghost" size="sm" className="text-royal-brown-700 hover:text-royal-maroon-800 text-xs">
+                  <User className="w-3.5 h-3.5 mr-1.5 opacity-70" />
+                  Sign In
+                </Button>
+              </Link>
+            )}
+
             <Link to="/admin">
-              <Button variant="ghost" size="sm" className="text-royal-brown-600 hover:text-royal-maroon-700">
-                <Shield className="w-4 h-4 mr-1.5 opacity-70" />
+              <Button variant="ghost" size="sm" className="text-royal-brown-500 hover:text-royal-maroon-700 text-xs px-2">
+                <Shield className="w-3.5 h-3.5 mr-1 opacity-60" />
                 Admin
               </Button>
             </Link>
+
             <Link to="/customize/theme-1">
               <Button variant="gold" size="md">
                 <Sparkles className="w-4 h-4 mr-1.5 text-royal-brown-900" />
@@ -105,6 +144,39 @@ export const Header = () => {
                 {link.name}
               </Link>
             ))}
+
+            {isAuthenticated ? (
+              <>
+                <Link
+                  to="/dashboard"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="px-4 py-2.5 text-sm font-semibold text-royal-maroon-800 hover:bg-royal-gold-50 rounded-lg flex items-center gap-2"
+                >
+                  <Crown className="w-4 h-4 text-royal-gold-600" />
+                  My Dashboard ({user?.name})
+                </Link>
+                <button
+                  onClick={() => {
+                    logout();
+                    setMobileMenuOpen(false);
+                  }}
+                  className="px-4 py-2 text-sm font-semibold text-red-700 hover:bg-red-50 rounded-lg flex items-center gap-2 text-left"
+                >
+                  <LogOut className="w-4 h-4" />
+                  Sign Out
+                </button>
+              </>
+            ) : (
+              <Link
+                to="/login"
+                onClick={() => setMobileMenuOpen(false)}
+                className="px-4 py-2.5 text-sm font-semibold text-royal-brown-800 hover:text-royal-maroon-700 hover:bg-royal-gold-50 rounded-lg flex items-center gap-2"
+              >
+                <User className="w-4 h-4" />
+                Sign In / Register
+              </Link>
+            )}
+
             <Link
               to="/admin"
               onClick={() => setMobileMenuOpen(false)}

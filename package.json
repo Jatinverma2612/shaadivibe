@@ -14,7 +14,9 @@
     "dev:all": "concurrently -n \"SERVER,CLIENT\" -c \"magenta,cyan\" \"npm run dev:server\" \"npm run dev:client\"",
     "dev": "npm run dev:all",
     "build": "npm run build --workspace=@shaadivibe/client",
-    "test": "npm run test --workspace=@shaadivibe/client",
+    "test:client": "npm run test --workspace=@shaadivibe/client",
+    "test:server": "node --test server/tests/api.test.js",
+    "test": "npm run test:client && npm run test:server",
     "seed": "npm run seed --workspace=@shaadivibe/server"
   },
   "devDependencies": {

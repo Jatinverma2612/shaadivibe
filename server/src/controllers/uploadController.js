@@ -9,6 +9,7 @@ export const uploadPhotos = (req, res) => {
         success: true,
         message: 'Photo uploaded successfully.',
         url: `/uploads/${sanitizedName}`,
+        urls: [`/uploads/${sanitizedName}`],
       });
     }
     return res.status(400).json({ success: false, message: 'Please select at least one image to upload.' });

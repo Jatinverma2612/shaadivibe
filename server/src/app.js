@@ -49,6 +49,25 @@ app.use(
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
+// Lightweight Cookie Parser Middleware
+app.use((req, res, next) => {
+  req.cookies = {};
+  const cookieHeader = req.headers.cookie;
+  if (cookieHeader) {
+    cookieHeader.split(';').forEach((cookie) => {
+      const [name, ...rest] = cookie.trim().split('=');
+      if (name) {
+        try {
+          req.cookies[name] = decodeURIComponent(rest.join('='));
+        } catch {
+          req.cookies[name] = rest.join('=');
+        }
+      }
+    });
+  }
+  next();
+});
+
 // Static uploads serving from server/uploads
 if (!fs.existsSync(UPLOAD_ROOT)) {
   fs.mkdirSync(UPLOAD_ROOT, { recursive: true });

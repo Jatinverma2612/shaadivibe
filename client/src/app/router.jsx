@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { createBrowserRouter, Navigate, Outlet } from 'react-router-dom';
+import React from 'react';
+import { createBrowserRouter, Navigate, Outlet, useLocation } from 'react-router-dom';
 import { PageLayout } from '../components/layout/PageLayout.jsx';
 import { HomePage } from '../features/home/HomePage.jsx';
 import { ThemeGallery } from '../features/themes/ThemeGallery.jsx';
@@ -8,6 +8,22 @@ import { CustomizationWizard } from '../features/customization/CustomizationWiza
 import { InvitationRenderer } from '../features/invitation/InvitationRenderer.jsx';
 import { AdminLogin } from '../features/admin/AdminLogin.jsx';
 import { AdminDashboard } from '../features/admin/AdminDashboard.jsx';
+import { CustomerLogin } from '../features/auth/CustomerLogin.jsx';
+import { CustomerRegister } from '../features/auth/CustomerRegister.jsx';
+import { CustomerDashboard } from '../features/dashboard/CustomerDashboard.jsx';
+
+// Protected Customer Route Guard
+const CustomerRoute = () => {
+  const token =
+    localStorage.getItem('shaadivibe_customer_token') ||
+    localStorage.getItem('shaadivibe_admin_token');
+  const location = useLocation();
+
+  if (!token) {
+    return <Navigate to="/login" state={{ from: location }} replace />;
+  }
+  return <Outlet />;
+};
 
 // Protected Admin Guard
 const AdminRoute = () => {
@@ -46,6 +62,23 @@ export const router = createBrowserRouter([
       {
         path: 'customize',
         element: <Navigate to="/customize/theme-1" replace />,
+      },
+      {
+        path: 'login',
+        element: <CustomerLogin />,
+      },
+      {
+        path: 'register',
+        element: <CustomerRegister />,
+      },
+      {
+        element: <CustomerRoute />,
+        children: [
+          {
+            path: 'dashboard',
+            element: <CustomerDashboard />,
+          },
+        ],
       },
       {
         path: 'admin',

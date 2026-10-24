@@ -42,6 +42,12 @@ const invitationSchema = new mongoose.Schema(
       type: String,
       default: 'royal-udaipur-palace',
     },
+    userId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      default: null,
+      index: true,
+    },
     brideName: {
       type: String,
       required: [true, "Bride's name is required"],
@@ -69,7 +75,7 @@ const invitationSchema = new mongoose.Schema(
       default: 'With the blessings of our ancestors and family, we cordially invite you to celebrate this auspicious union.',
     },
     venue: {
-      name: { type: String, required: true },
+      name: { type: String, default: 'Grand Palace Venue' },
       address: { type: String, default: '' },
       mapUrl: { type: String, default: '' },
     },
@@ -79,7 +85,8 @@ const invitationSchema = new mongoose.Schema(
     status: {
       type: String,
       enum: ['draft', 'published'],
-      default: 'published',
+      default: 'draft',
+      index: true,
     },
   },
   {

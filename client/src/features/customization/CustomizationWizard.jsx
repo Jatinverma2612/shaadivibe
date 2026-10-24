@@ -1,27 +1,44 @@
-import React, { useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
+import { useParams, useSearchParams, Link } from 'react-router-dom';
 import { useCustomizationStore } from '../../store/customizationStore.js';
-import { fetchThemeBySlug } from '../../services/api.js';
+import { fetchThemeBySlug, fetchInvitationById } from '../../services/api.js';
 import { Step1Details } from './Step1Details.jsx';
 import { Step2Photos } from './Step2Photos.jsx';
 import { Step3Preview } from './Step3Preview.jsx';
 import { FloralDivider } from '../../components/common/Motifs.jsx';
-import { Sparkles, Check, ArrowLeft, Heart, Image as ImageIcon, Eye } from 'lucide-react';
+import { Sparkles, Check, ArrowLeft, Heart, Image as ImageIcon, Eye, FileText, CheckCircle2 } from 'lucide-react';
 
 export const CustomizationWizard = () => {
   const { themeId } = useParams();
+  const [searchParams] = useSearchParams();
+  const editId = searchParams.get('edit');
+
   const store = useCustomizationStore();
+  const [isLoadingDraft, setIsLoadingDraft] = useState(false);
 
   useEffect(() => {
-    // If a theme was passed in URL, load its defaults
-    if (themeId) {
+    // If editing an existing draft
+    if (editId) {
+      setIsLoadingDraft(true);
+      fetchInvitationById(editId)
+        .then((inv) => {
+          if (inv) store.loadInvitation(inv);
+        })
+        .catch((err) => {
+          console.warn('[Wizard] Could not load draft:', err.message);
+        })
+        .finally(() => {
+          setIsLoadingDraft(false);
+        });
+    } else if (themeId) {
+      // If a theme was passed in URL and not loading an edit draft
       fetchThemeBySlug(themeId)
         .then((theme) => {
           if (theme) store.setSelectedTheme(theme);
         })
         .catch(() => {});
     }
-  }, [themeId]);
+  }, [themeId, editId]);
 
   const steps = [
     { number: 1, title: 'Details & Itinerary', icon: Heart },
@@ -33,19 +50,35 @@ export const CustomizationWizard = () => {
     <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
       {/* Top Breadcrumb & Header */}
       <div className="text-center mb-8">
-        <Link
-          to="/themes"
-          className="inline-flex items-center text-xs font-semibold text-royal-gold-700 hover:text-royal-maroon-700 mb-3 transition-colors"
-        >
-          <ArrowLeft className="w-3.5 h-3.5 mr-1" />
-          <span>Back to Theme Gallery</span>
-        </Link>
+        <div className="flex items-center justify-center gap-4 mb-3">
+          <Link
+            to="/themes"
+            className="inline-flex items-center text-xs font-semibold text-royal-gold-700 hover:text-royal-maroon-700 transition-colors"
+          >
+            <ArrowLeft className="w-3.5 h-3.5 mr-1" />
+            <span>Theme Gallery</span>
+          </Link>
+          <span className="text-royal-gold-300">•</span>
+          <Link
+            to="/dashboard"
+            className="inline-flex items-center text-xs font-semibold text-royal-gold-700 hover:text-royal-maroon-700 transition-colors"
+          >
+            <span>My Dashboard</span>
+          </Link>
+        </div>
+
+        {store.invitationId && (
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-royal-gold-100 border border-royal-gold-400 text-[11px] font-bold text-royal-maroon-800 mb-3 shadow-sm">
+            <FileText className="w-3.5 h-3.5 text-royal-gold-700" />
+            <span>Editing Saved Invitation • Status: {store.status === 'published' ? 'Published' : 'Draft'}</span>
+          </div>
+        )}
 
         <h1 className="font-serif text-3xl sm:text-4xl font-bold text-royal-maroon-800 tracking-wide">
-          Customize Your Royal Invitation
+          {store.invitationId ? 'Update Your Royal Invitation' : 'Customize Your Royal Invitation'}
         </h1>
         <p className="text-xs sm:text-sm text-royal-brown-600 max-w-lg mx-auto mt-2">
-          Personalize every ritual, timing, venue, and romantic photograph with real-time preview.
+          Personalize every ritual, timing, venue, and romantic photograph with real-time preview and server-side draft preservation.
         </p>
         <FloralDivider className="w-36 h-3 text-royal-gold-500 mx-auto mt-3" />
       </div>
@@ -66,7 +99,6 @@ export const CustomizationWizard = () => {
                 key={s.number}
                 className="relative z-10 flex flex-col items-center cursor-pointer group"
                 onClick={() => {
-                  // Only allow clicking past completed steps or current
                   if (s.number <= store.activeStep || isCompleted) {
                     store.setActiveStep(s.number);
                   }

@@ -1,5 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { weddingDetailsSchema, eventItemSchema } from './validationSchemas.js';
+import {
+  weddingDetailsSchema,
+  eventItemSchema,
+  customerLoginSchema,
+  customerRegisterSchema,
+} from './validationSchemas.js';
 
 describe('validationSchemas', () => {
   it('validates a correct wedding details payload', () => {
@@ -48,5 +53,35 @@ describe('validationSchemas', () => {
 
     const result = eventItemSchema.safeParse(event);
     expect(result.success).toBe(true);
+  });
+
+  it('validates customer login credentials', () => {
+    const valid = customerLoginSchema.safeParse({
+      email: 'bride@example.com',
+      password: 'password123',
+    });
+    expect(valid.success).toBe(true);
+
+    const invalid = customerLoginSchema.safeParse({
+      email: 'not-an-email',
+      password: '',
+    });
+    expect(invalid.success).toBe(false);
+  });
+
+  it('validates customer registration with minimum 8 character password', () => {
+    const valid = customerRegisterSchema.safeParse({
+      name: 'Ananya Singhania',
+      email: 'ananya@example.com',
+      password: 'StrongPassword@123',
+    });
+    expect(valid.success).toBe(true);
+
+    const shortPassword = customerRegisterSchema.safeParse({
+      name: 'Ananya',
+      email: 'ananya@example.com',
+      password: 'short',
+    });
+    expect(shortPassword.success).toBe(false);
   });
 });

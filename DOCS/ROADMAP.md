@@ -10,19 +10,20 @@ This document outlines the multi-phase engineering and product roadmap for the e
 
 ```mermaid
 graph TD
-    P1[Phase 1: Core Invitation Platform & Design System] --> P2[Phase 2: Ambient Music & Audio Experience]
-    P2 --> P3[Phase 3: Guest Management & RSVP Engine]
-    P3 --> P4[Phase 4: Commercialization & Payment Gateway]
-    P4 --> P5[Phase 5: Automated Video Invitation Generator]
-    P5 --> P6[Phase 6: Multi-Lingual & Regional Cultural Suites]
-    P6 --> P7[Phase 7: Analytics, WhatsApp Engine & Production Cloud]
+    P1[Phase 1: Core Invitation Platform & Design System] --> P2[Phase 2: Customer Experience, Invitation Management & Reliability]
+    P2 --> P3[Phase 3: Ambient Music & Audio Experience]
+    P3 --> P4[Phase 4: Guest Management & RSVP Engine]
+    P4 --> P5[Phase 5: Commercialization & Payment Gateway]
+    P5 --> P6[Phase 6: Automated Video Invitation Generator]
+    P6 --> P7[Phase 7: Multi-Lingual & Regional Cultural Suites]
+    P7 --> P8[Phase 8: Analytics & Production Cloud]
 ```
 
 ---
 
 ## Detailed Phases
 
-### Phase 1: MVP Core Platform & Dynamic Invitation Experience (CURRENT PHASE)
+### Phase 1: MVP Core Platform & Dynamic Invitation Experience (COMPLETED)
 *Goal: Deliver a production-grade, highly aesthetic multi-page platform with full customization, dynamic envelope opening, interactive event timeline, and administrative control.*
 
 - **Visual Identity & Design System**:
@@ -55,7 +56,34 @@ graph TD
 
 ---
 
-### Phase 2: Ambient Music & Audio Experience
+### Phase 2: Customer Experience, Invitation Management & Reliability (COMPLETED)
+*Goal: Empower customers to reliably create, save drafts to MongoDB, reopen & edit, publish invitations with stable unique URLs, and manage them via an authenticated customer dashboard.*
+
+- **Customer Authentication & Ownership**:
+  - Customer registration (`POST /api/auth/register`), login (`POST /api/auth/login`), logout (`POST /api/auth/logout`), session verification (`GET /api/auth/me`).
+  - Bcrypt password hashing (minimum 8 characters), JWT validation, and secure HTTP-only cookies (`SameSite: Lax`, `Secure: production`).
+  - Role separation: distinct `customer` and `admin` permissions with no privilege leakage.
+- **Persistent Invitation Drafts & Lifecycle**:
+  - Server-side MongoDB draft persistence with unique slug generation.
+  - Reopening and editing existing drafts (`/customize/:themeId?edit=:id`).
+  - Explicit publishing workflow (`PATCH /api/invitations/:id/publish`) and unpublishing (`PATCH /api/invitations/:id/unpublish`).
+  - Strict privacy: unpublished drafts remain private to owner and admin (anonymous visitors receive 404).
+  - IDOR defense: verified that customers cannot read, update, publish, or delete drafts belonging to other customers (403 Forbidden).
+- **Customer Dashboard (`/dashboard`)**:
+  - Overview of customer's invitations with Draft and Published filter tabs.
+  - Dynamic ceremony count, wedding date, and last-updated information.
+  - Actions: Continue Editing, Preview, Share / Copy Link, Unpublish, and native Delete Confirmation Modal (no browser `alert`/`confirm`).
+- **Photo Management & Validation**:
+  - Mimetype and extension allow-lists (`.jpg`, `.jpeg`, `.png`, `.webp`), 5MB size limit, path traversal sanitization with `path.basename()`.
+  - Associating photos with customer invitations and ensuring reliable asset retrieval.
+- **Test Suite & Monorepo Validation**:
+  - 13 automated backend API tests (`server/tests/api.test.js`) using Node's native test runner.
+  - 9 Vitest frontend schema and date tests.
+  - Successful production bundle build (`client/dist/`).
+
+---
+
+### Phase 3: Ambient Music & Audio Experience
 *Goal: Bring Indian wedding auditory richness into the digital invitation.*
 
 - Curated library of traditional and modern Indian wedding instrumentals (Shehnai, Sitar, Flute, Santoor, Royal Dhol, Classical Ragas).

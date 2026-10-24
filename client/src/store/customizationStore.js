@@ -6,6 +6,14 @@ export const useCustomizationStore = create((set, get) => ({
   selectedThemeId: 'theme-1',
   selectedThemeSlug: 'royal-udaipur-palace',
 
+  // Persistent Invitation metadata
+  invitationId: null,
+  status: 'draft', // 'draft' | 'published'
+  slug: '',
+  saveStatus: 'idle', // 'idle' | 'saving' | 'saved' | 'error'
+  saveError: '',
+  lastSaved: null,
+
   // Wedding Details
   brideName: 'Priya Sharma',
   groomName: 'Rohan Mehra',
@@ -37,11 +45,60 @@ export const useCustomizationStore = create((set, get) => ({
   setActiveStep: (step) => set({ activeStep: step }),
   setSelectedTheme: (theme) =>
     set({
-      selectedThemeId: theme._id || theme.id,
-      selectedThemeSlug: theme.slug,
+      selectedThemeId: theme._id || theme.id || get().selectedThemeId,
+      selectedThemeSlug: theme.slug || get().selectedThemeSlug,
     }),
 
   updateDetails: (details) => set((state) => ({ ...state, ...details })),
+
+  setSaveStatus: (status, error = '') =>
+    set({
+      saveStatus: status,
+      saveError: error,
+      ...(status === 'saved' ? { lastSaved: new Date().toISOString() } : {}),
+    }),
+
+  setInvitationId: (id, slug = '') =>
+    set((state) => ({
+      invitationId: id,
+      slug: slug || state.slug,
+    })),
+
+  // Load existing invitation from backend to resume editing
+  loadInvitation: (invData) =>
+    set({
+      invitationId: invData._id || invData.id,
+      status: invData.status || 'draft',
+      slug: invData.slug || '',
+      selectedThemeSlug: invData.themeSlug || 'royal-udaipur-palace',
+      brideName: invData.brideName || '',
+      groomName: invData.groomName || '',
+      weddingDate: invData.weddingDate
+        ? new Date(invData.weddingDate).toISOString().split('T')[0]
+        : '',
+      weddingTime: invData.weddingTime || '07:30 PM',
+      language: invData.language || 'English',
+      tagline: invData.tagline || 'Two Souls, One Sacred Journey',
+      familyMessage:
+        invData.familyMessage ||
+        'We cordially invite you to celebrate our wedding.',
+      venue: {
+        name: invData.venue?.name || '',
+        address: invData.venue?.address || '',
+        mapUrl: invData.venue?.mapUrl || '',
+      },
+      photos: Array.isArray(invData.photos) ? invData.photos : [],
+      interactiveCards:
+        Array.isArray(invData.interactiveCards) && invData.interactiveCards.length > 0
+          ? invData.interactiveCards
+          : [...sampleInvitation.interactiveCards],
+      events:
+        Array.isArray(invData.events) && invData.events.length > 0
+          ? invData.events
+          : [...sampleInvitation.events],
+      saveStatus: 'saved',
+      lastSaved: invData.updatedAt || new Date().toISOString(),
+    }),
 
   // Event actions
   addEvent: (event) =>
@@ -74,6 +131,12 @@ export const useCustomizationStore = create((set, get) => ({
   resetToDefault: () =>
     set({
       activeStep: 1,
+      invitationId: null,
+      status: 'draft',
+      slug: '',
+      saveStatus: 'idle',
+      saveError: '',
+      lastSaved: null,
       brideName: 'Priya Sharma',
       groomName: 'Rohan Mehra',
       weddingDate: new Date(Date.now() + 45 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
@@ -90,5 +153,6 @@ export const useCustomizationStore = create((set, get) => ({
         'https://images.unsplash.com/photo-1583939003579-730e3918a45a?auto=format&fit=crop&w=1000&q=80',
         'https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&w=1000&q=80',
       ],
+      interactiveCards: [...sampleInvitation.interactiveCards],
     }),
 }));
