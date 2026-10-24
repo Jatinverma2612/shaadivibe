@@ -1,14 +1,12 @@
 import dotenv from 'dotenv';
 dotenv.config();
 
-import { connectDB } from '../config/db.js';
-import { User } from '../models/User.js';
-import { Theme } from '../models/Theme.js';
-import { Invitation } from '../models/Invitation.js';
-import { SiteContent } from '../models/SiteContent.js';
-import { defaultThemes } from '../controllers/themeController.js';
-import { sampleInvitation } from '../controllers/invitationController.js';
-import { defaultSiteContent } from '../controllers/contentController.js';
+import { connectDB } from '../src/config/db.js';
+import { User } from '../src/models/User.js';
+import { Theme } from '../src/models/Theme.js';
+import { Invitation } from '../src/models/Invitation.js';
+import { SiteContent } from '../src/models/SiteContent.js';
+import { defaultThemes, sampleInvitation, defaultSiteContent } from '../../shared/constants/mockData.js';
 
 export const seedDatabase = async () => {
   const conn = await connectDB();

@@ -9,7 +9,7 @@ import { YouAreInvitedCard } from './YouAreInvitedCard.jsx';
 import { EventTimeline } from './EventTimeline.jsx';
 import { Button } from '../../components/common/Button.jsx';
 import { Share2, Check, ArrowLeft, Sparkles, Loader2, Heart } from 'lucide-react';
-import { sampleInvitation } from '../../../server/controllers/invitationController.js';
+import { sampleInvitation } from '../../../../shared/constants/mockData.js';
 
 export const InvitationRenderer = ({ customInvitation = null }) => {
   const { slug } = useParams();

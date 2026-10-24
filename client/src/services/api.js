@@ -1,8 +1,6 @@
-import { defaultThemes } from '../../server/controllers/themeController.js';
-import { sampleInvitation } from '../../server/controllers/invitationController.js';
-import { defaultSiteContent } from '../../server/controllers/contentController.js';
+import { defaultThemes, sampleInvitation, defaultSiteContent } from '../../../shared/constants/mockData.js';
 
-const API_BASE = '/api';
+const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
 
 /**
  * Helper to get Auth token from localStorage

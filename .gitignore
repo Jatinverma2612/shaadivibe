@@ -1,21 +1,33 @@
 # Dependencies
 node_modules
+client/node_modules
+server/node_modules
 .pnp
 .pnp.js
 
 # Testing
 coverage
+*.lcov
 
-# Production
+# Production Build
 dist
+client/dist
 build
 
-# Environment variables
+# Environment files
 .env
 .env.local
 .env.development.local
 .env.test.local
 .env.production.local
+server/.env
+client/.env
+
+# Runtime Uploads
+server/uploads/*
+!server/uploads/.gitkeep
+public/uploads/*
+!public/uploads/.gitkeep
 
 # Logs
 npm-debug.log*
@@ -25,7 +37,7 @@ pnpm-debug.log*
 lerna-debug.log*
 *.log
 
-# Editor & System
+# Editor & OS files
 .vscode/*
 !.vscode/extensions.json
 .idea
@@ -36,7 +48,3 @@ lerna-debug.log*
 *.sln
 *.sw?
 Thumbs.db
-
-# Uploads
-public/uploads/*
-!public/uploads/.gitkeep

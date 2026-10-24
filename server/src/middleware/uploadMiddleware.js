@@ -3,7 +3,14 @@ import path from 'path';
 import fs from 'fs';
 import crypto from 'crypto';
 
-const UPLOAD_ROOT = path.resolve(process.cwd(), 'public', 'uploads');
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+export const UPLOAD_ROOT = process.env.UPLOAD_DIR
+  ? path.resolve(process.env.UPLOAD_DIR)
+  : path.resolve(__dirname, '..', '..', 'uploads');
 
 // Ensure upload directory exists safely
 if (!fs.existsSync(UPLOAD_ROOT)) {

@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { sampleInvitation } from '../../server/controllers/invitationController.js';
+import { sampleInvitation } from '../../../shared/constants/mockData.js';
 
 export const useCustomizationStore = create((set, get) => ({
   activeStep: 1, // 1: Details & Itinerary, 2: Photos, 3: Final Preview

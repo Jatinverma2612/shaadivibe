@@ -1,6 +1,3 @@
-import dotenv from 'dotenv';
-dotenv.config();
-
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
@@ -8,10 +5,9 @@ import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
 
-import { connectDB } from './config/db.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import { apiLimiter } from './middleware/rateLimiter.js';
-import { seedDatabase } from './seed/seedData.js';
+import { UPLOAD_ROOT } from './middleware/uploadMiddleware.js';
 
 import authRoutes from './routes/authRoutes.js';
 import themeRoutes from './routes/themeRoutes.js';
@@ -23,7 +19,6 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
-const PORT = process.env.PORT || 5000;
 
 // Security Middlewares
 app.use(
@@ -32,9 +27,21 @@ app.use(
   })
 );
 
+const allowedOrigins = [
+  process.env.CLIENT_URL || 'http://localhost:5173',
+  'http://localhost:5173',
+  'http://127.0.0.1:5173',
+];
+
 app.use(
   cors({
-    origin: ['http://localhost:5173', 'http://127.0.0.1:5173'],
+    origin: (origin, callback) => {
+      // Allow requests with no origin (like mobile apps, curl, or same-origin)
+      if (!origin || allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+      return callback(null, true); // Permissive in dev, configurable in prod
+    },
     credentials: true,
   })
 );
@@ -42,12 +49,11 @@ app.use(
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// Static uploads serving
-const uploadsDir = path.resolve(__dirname, '..', 'public', 'uploads');
-if (!fs.existsSync(uploadsDir)) {
-  fs.mkdirSync(uploadsDir, { recursive: true });
+// Static uploads serving from server/uploads
+if (!fs.existsSync(UPLOAD_ROOT)) {
+  fs.mkdirSync(UPLOAD_ROOT, { recursive: true });
 }
-app.use('/uploads', express.static(uploadsDir));
+app.use('/uploads', express.static(UPLOAD_ROOT));
 
 // Rate Limiter for API
 app.use('/api', apiLimiter);
@@ -72,16 +78,4 @@ app.use('/api/upload', uploadRoutes);
 // Error Handling Middleware
 app.use(errorHandler);
 
-// Start server
-const startServer = async () => {
-  app.listen(PORT, '127.0.0.1', () => {
-    console.log(`[ShaadiVibe Server] Running securely at http://127.0.0.1:${PORT}`);
-  });
-
-  const conn = await connectDB();
-  if (conn) {
-    await seedDatabase();
-  }
-};
-
-startServer();
+export default app;
