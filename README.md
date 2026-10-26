@@ -37,16 +37,15 @@ shaadivibe/
 │   │   ├── middleware/         # Auth guard, rate limit, upload handler, error handling
 │   │   ├── models/             # Mongoose models (User, Theme, Invitation, SiteContent)
 │   │   ├── routes/             # REST API routes
+│   │   ├── utils/              # Authoritative server-side validators & utilities
+│   │   ├── constants/          # Backend seed & fallback data
 │   │   ├── app.js              # Express app definition & middleware setup
 │   │   └── server.js           # Server bootstrap & listen logic
+│   ├── tests/                  # Integration and API test suites
 │   ├── scripts/                # Database seeders (seedData.js)
 │   ├── uploads/                # Dedicated user upload storage directory
 │   ├── package.json            # Backend package manifest (@shaadivibe/server)
 │   └── .env.example            # Backend environment variables template
-│
-├── shared/                     # Shared Contracts & Constants
-│   ├── constants/              # Shared themes, invitations & CMS mock data
-│   └── schemas/                # Shared Zod validation schemas
 │
 ├── DOCS/                       # Comprehensive Project Documentation
 │   ├── ROADMAP.md              # 7-Phase Platform Master Vision
@@ -54,6 +53,7 @@ shaadivibe/
 │   └── DESIGN_SYSTEM.md        # Royal Indian Wedding Design Tokens
 │
 ├── package.json                # Root monorepo orchestration (npm workspaces)
+├── package-lock.json           # Monorepo lockfile
 ├── .env.example                # Monorepo environment variables template
 ├── .gitignore                  # Git ignore rules for monorepo
 └── README.md                   # Project documentation
@@ -175,6 +175,8 @@ npm run seed
 - **Customer Registration**: [http://localhost:5173/register](http://localhost:5173/register)
 - **Customer Dashboard**: [http://localhost:5173/dashboard](http://localhost:5173/dashboard)
 - **Admin Portal**: [http://localhost:5173/admin](http://localhost:5173/admin)
-  - **Email**: `admin@shaadivibe.com`
-  - **Password**: `Admin@123456`
+  - **Email**: `admin@gmail.com`
+  - **Password**: `@admin123`
 
+#   s h a a d i v i b e  
+ 
