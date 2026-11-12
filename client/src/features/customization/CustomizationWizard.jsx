@@ -6,7 +6,7 @@ import { Step1Details } from './Step1Details.jsx';
 import { Step2Photos } from './Step2Photos.jsx';
 import { Step3Preview } from './Step3Preview.jsx';
 import { FloralDivider } from '../../components/common/Motifs.jsx';
-import { Sparkles, Check, ArrowLeft, Heart, Image as ImageIcon, Eye, FileText, CheckCircle2 } from 'lucide-react';
+import { Check, ArrowLeft, Heart, Image as ImageIcon, Eye, FileText } from 'lucide-react';
 
 export const CustomizationWizard = () => {
   const { themeId } = useParams();
@@ -47,47 +47,47 @@ export const CustomizationWizard = () => {
   ];
 
   return (
-    <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+    <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
       {/* Top Breadcrumb & Header */}
-      <div className="text-center mb-8">
-        <div className="flex items-center justify-center gap-4 mb-3">
+      <div className="text-center mb-6 sm:mb-8">
+        <div className="flex items-center justify-center gap-3 mb-2.5">
           <Link
             to="/themes"
-            className="inline-flex items-center text-xs font-semibold text-royal-gold-700 hover:text-royal-maroon-700 transition-colors"
+            className="inline-flex items-center text-xs font-semibold text-floral-gold hover:text-floral-burgundy transition-colors"
           >
             <ArrowLeft className="w-3.5 h-3.5 mr-1" />
             <span>Theme Gallery</span>
           </Link>
-          <span className="text-royal-gold-300">•</span>
+          <span className="text-floral-gold/60">•</span>
           <Link
             to="/dashboard"
-            className="inline-flex items-center text-xs font-semibold text-royal-gold-700 hover:text-royal-maroon-700 transition-colors"
+            className="inline-flex items-center text-xs font-semibold text-floral-gold hover:text-floral-burgundy transition-colors"
           >
             <span>My Dashboard</span>
           </Link>
         </div>
 
         {store.invitationId && (
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-royal-gold-100 border border-royal-gold-400 text-[11px] font-bold text-royal-maroon-800 mb-3 shadow-sm">
-            <FileText className="w-3.5 h-3.5 text-royal-gold-700" />
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-floral-blush border border-royal-rose/30 text-[11px] font-bold text-floral-burgundy mb-2.5 shadow-sm">
+            <FileText className="w-3.5 h-3.5 text-floral-burgundy" />
             <span>Editing Saved Invitation • Status: {store.status === 'published' ? 'Published' : 'Draft'}</span>
           </div>
         )}
 
-        <h1 className="font-serif text-3xl sm:text-4xl font-bold text-royal-maroon-800 tracking-wide">
+        <h1 className="font-serif text-2xl sm:text-4xl font-bold text-floral-burgundy tracking-wide">
           {store.invitationId ? 'Update Your Royal Invitation' : 'Customize Your Royal Invitation'}
         </h1>
-        <p className="text-xs sm:text-sm text-royal-brown-600 max-w-lg mx-auto mt-2">
+        <p className="text-xs sm:text-sm text-floral-brown/85 max-w-lg mx-auto mt-2 leading-relaxed">
           Personalize every ritual, timing, venue, and romantic photograph with real-time preview and server-side draft preservation.
         </p>
-        <FloralDivider className="w-36 h-3 text-royal-gold-500 mx-auto mt-3" />
+        <FloralDivider className="w-36 h-3 text-floral-gold mx-auto mt-3" />
       </div>
 
-      {/* 3-Step Wizard Indicator (NO MUSIC STEP) */}
-      <div className="mb-10 max-w-2xl mx-auto">
+      {/* 3-Step Wizard Indicator */}
+      <div className="mb-8 sm:mb-10 max-w-2xl mx-auto px-2">
         <div className="flex items-center justify-between relative">
           {/* Connector Line */}
-          <div className="absolute left-8 right-8 top-1/2 -translate-y-1/2 h-0.5 bg-royal-gold-300/60 z-0" />
+          <div className="absolute left-6 right-6 top-5 -translate-y-1/2 h-0.5 bg-floral-gold/30 z-0" />
 
           {steps.map((s) => {
             const Icon = s.icon;
@@ -97,7 +97,7 @@ export const CustomizationWizard = () => {
             return (
               <div
                 key={s.number}
-                className="relative z-10 flex flex-col items-center cursor-pointer group"
+                className="relative z-10 flex flex-col items-center cursor-pointer group flex-1"
                 onClick={() => {
                   if (s.number <= store.activeStep || isCompleted) {
                     store.setActiveStep(s.number);
@@ -105,27 +105,27 @@ export const CustomizationWizard = () => {
                 }}
               >
                 <div
-                  className={`w-12 h-12 rounded-full flex items-center justify-center font-bold text-sm transition-all duration-300 border-2 ${
+                  className={`w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center font-bold text-xs sm:text-sm transition-all duration-300 border-2 ${
                     isCompleted
-                      ? 'bg-royal-maroon-700 text-royal-gold-200 border-royal-gold-400 shadow-md'
+                      ? 'bg-floral-burgundy text-white border-floral-gold shadow-md'
                       : isCurrent
-                      ? 'bg-royal-gold-500 text-royal-brown-950 border-royal-maroon-700 shadow-gold-glow scale-110'
-                      : 'bg-royal-ivory-card text-royal-brown-400 border-royal-gold-300'
+                      ? 'bg-gradient-to-r from-royal-gold-600 to-royal-gold-500 text-floral-brown border-floral-burgundy shadow-gold-glow scale-110'
+                      : 'bg-white text-floral-brown/40 border-floral-gold/30'
                   }`}
                 >
-                  {isCompleted ? <Check className="w-5 h-5 stroke-[2.5]" /> : <Icon className="w-5 h-5" />}
+                  {isCompleted ? <Check className="w-4 h-4 sm:w-5 sm:h-5 stroke-[2.5]" /> : <Icon className="w-4 h-4 sm:w-5 sm:h-5" />}
                 </div>
 
                 <span
-                  className={`text-xs font-semibold tracking-wider uppercase mt-2 select-none ${
+                  className={`text-[10px] sm:text-xs font-semibold tracking-wider uppercase mt-2 text-center select-none ${
                     isCurrent
-                      ? 'text-royal-maroon-800 font-bold'
+                      ? 'text-floral-burgundy font-bold'
                       : isCompleted
-                      ? 'text-royal-gold-800'
-                      : 'text-royal-brown-400'
+                      ? 'text-floral-gold'
+                      : 'text-floral-brown/40'
                   }`}
                 >
-                  Step {s.number}: {s.title}
+                  <span className="hidden sm:inline">Step {s.number}: </span>{s.title}
                 </span>
               </div>
             );

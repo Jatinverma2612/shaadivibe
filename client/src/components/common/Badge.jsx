@@ -17,6 +17,7 @@ export const Badge = ({
     maroon: 'bg-royal-maroon-100 text-royal-maroon-800 border border-royal-maroon-400/40 font-semibold',
     ivory: 'bg-royal-ivory-warm text-royal-brown-700 border border-royal-ivory-border font-medium',
     marigold: 'bg-amber-100 text-amber-900 border border-amber-400/50 font-semibold',
+    rose: 'bg-royal-rose-light text-floral-burgundy border border-royal-rose/40 font-semibold',
   }[variant] || 'bg-royal-gold-100 text-royal-gold-900';
 
   return (

@@ -14,6 +14,18 @@ import themeRoutes from './routes/themeRoutes.js';
 import invitationRoutes from './routes/invitationRoutes.js';
 import contentRoutes from './routes/contentRoutes.js';
 import uploadRoutes from './routes/uploadRoutes.js';
+import cartRoutes from './routes/cartRoutes.js';
+import wishlistRoutes from './routes/wishlistRoutes.js';
+import adminRoutes from './routes/adminRoutes.js';
+import orderRoutes from './routes/orderRoutes.js';
+import customerRoutes from './routes/customerRoutes.js';
+import rsvpRoutes from './routes/rsvpRoutes.js';
+import couponRoutes from './routes/couponRoutes.js';
+import ticketRoutes from './routes/ticketRoutes.js';
+import adminTicketRoutes from './routes/adminTicketRoutes.js';
+import categoryRoutes from './routes/categoryRoutes.js';
+import paymentRoutes from './routes/paymentRoutes.js';
+import { getConnectionStatus } from './config/db.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -79,11 +91,13 @@ app.use('/api', apiLimiter);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
+  const dbStatus = getConnectionStatus();
   res.json({
-    status: 'healthy',
+    status: dbStatus.isConnected ? 'healthy' : 'degraded',
     platform: 'ShaadiVibe Indian Wedding Invitation Platform',
     version: '1.0.0',
     timestamp: new Date().toISOString(),
+    database: dbStatus,
   });
 });
 
@@ -93,6 +107,18 @@ app.use('/api/themes', themeRoutes);
 app.use('/api/invitations', invitationRoutes);
 app.use('/api/content', contentRoutes);
 app.use('/api/upload', uploadRoutes);
+app.use('/api/cart', cartRoutes);
+app.use('/api/wishlist', wishlistRoutes);
+app.use('/api/admin', adminRoutes);
+app.use('/api/admin/customers', customerRoutes);
+app.use('/api/admin/coupons', couponRoutes);
+app.use('/api/coupons', couponRoutes);
+app.use('/api/admin/tickets', adminTicketRoutes);
+app.use('/api/tickets', ticketRoutes);
+app.use('/api/rsvp', rsvpRoutes);
+app.use('/api/orders', orderRoutes);
+app.use('/api/categories', categoryRoutes);
+app.use('/api/admin/payments', paymentRoutes);
 
 // Error Handling Middleware
 app.use(errorHandler);

@@ -10,7 +10,7 @@ dotenv.config({ path: path.resolve(__dirname, '..', '.env') });
 dotenv.config({ path: path.resolve(__dirname, '..', '..', '.env') });
 
 import app from './app.js';
-import { connectDB } from './config/db.js';
+import { connectDB, disconnectDB } from './config/db.js';
 import { seedDatabase } from '../scripts/seedData.js';
 
 const PORT = process.env.PORT || 5000;
@@ -25,9 +25,24 @@ const startServer = async () => {
     await seedDatabase();
   }
 
+  const handleShutdown = async (signal) => {
+    console.log(`[ShaadiVibe Server] Received ${signal}. Closing connections gracefully...`);
+    server.close(async () => {
+      await disconnectDB();
+      console.log('[ShaadiVibe Server] HTTP server and database connections closed.');
+      process.exit(0);
+    });
+  };
+
+  process.on('SIGINT', () => handleShutdown('SIGINT'));
+  process.on('SIGTERM', () => handleShutdown('SIGTERM'));
+
   return server;
 };
 
-startServer();
+// Start server if executed directly
+if (process.argv[1]?.includes('server.js')) {
+  startServer();
+}
 
 export { startServer };

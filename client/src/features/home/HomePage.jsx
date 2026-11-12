@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { HeroSection } from './HeroSection.jsx';
+import { InvitationShowcaseSection } from './InvitationShowcaseSection.jsx';
 import { FeaturesSection } from './FeaturesSection.jsx';
 import { TrendingThemes } from './TrendingThemes.jsx';
 import { HowItWorks } from './HowItWorks.jsx';
@@ -25,6 +26,7 @@ export const HomePage = () => {
   return (
     <div className="space-y-0">
       <HeroSection content={heroContent} />
+      <InvitationShowcaseSection />
       <FeaturesSection content={featuresContent} />
       <TrendingThemes />
       <HowItWorks />

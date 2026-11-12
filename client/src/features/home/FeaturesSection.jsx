@@ -43,38 +43,38 @@ export const FeaturesSection = ({ content }) => {
   ];
 
   return (
-    <section id="features" className="py-20 bg-royal-ivory-warm/40 relative">
+    <section id="features" className="py-16 sm:py-20 bg-floral-blush/30 relative">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-16">
-          <span className="text-xs font-bold uppercase tracking-widest text-royal-gold-700">
+        <div className="text-center mb-12 sm:mb-16">
+          <span className="text-xs font-bold uppercase tracking-widest text-floral-gold">
             Auspicious Digital Innovation
           </span>
-          <h2 className="font-serif text-3xl sm:text-4xl md:text-5xl font-bold text-royal-maroon-800 tracking-wide mt-1">
+          <h2 className="font-serif text-3xl sm:text-4xl md:text-5xl font-bold text-floral-burgundy tracking-wide mt-1">
             {title}
           </h2>
-          <p className="text-xs sm:text-sm text-royal-brown-600 max-w-xl mx-auto mt-2 leading-relaxed">
+          <p className="text-xs sm:text-sm text-floral-brown/85 max-w-xl mx-auto mt-2 leading-relaxed">
             {subtitle}
           </p>
-          <FloralDivider className="w-40 h-3 text-royal-gold-500 mx-auto mt-3" />
+          <FloralDivider className="w-40 h-3 text-floral-gold mx-auto mt-3" />
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
           {featureItems.map((item, idx) => {
             const Icon = typeof item.icon === 'string' ? Sparkles : item.icon;
             return (
               <Card
                 key={idx}
                 ornate={true}
-                className="p-8 text-left hover:border-royal-gold-500 hover:shadow-royal-lg transition-all duration-300 bg-royal-ivory-card border border-royal-gold-400/30 flex flex-col justify-between"
+                className="p-6 sm:p-8 text-left hover:border-floral-gold hover:shadow-royal-lg transition-all duration-300 bg-white border border-floral-gold/30 rounded-2xl flex flex-col justify-between"
               >
                 <div>
-                  <div className="w-12 h-12 rounded-xl bg-royal-gold-100 border border-royal-gold-400 flex items-center justify-center text-royal-maroon-800 mb-5 shadow-sm">
-                    <Icon className="w-6 h-6 text-royal-gold-700" />
+                  <div className="w-12 h-12 rounded-xl bg-floral-blush border border-royal-rose/30 flex items-center justify-center text-floral-burgundy mb-4 sm:mb-5 shadow-sm">
+                    <Icon className="w-6 h-6 text-floral-burgundy" />
                   </div>
-                  <h3 className="font-serif text-xl font-bold text-royal-maroon-800 tracking-wide mb-2">
+                  <h3 className="font-serif text-lg sm:text-xl font-bold text-floral-burgundy tracking-wide mb-2">
                     {item.title}
                   </h3>
-                  <p className="text-xs sm:text-sm text-royal-brown-600 leading-relaxed">
+                  <p className="text-xs sm:text-sm text-floral-brown/85 leading-relaxed">
                     {item.description}
                   </p>
                 </div>

@@ -26,6 +26,13 @@ const userSchema = new mongoose.Schema(
       enum: ['admin', 'customer', 'user'],
       default: 'customer',
     },
+    cart: [
+      {
+        themeId: { type: String, required: true },
+        addedAt: { type: Date, default: Date.now },
+      },
+    ],
+    wishlist: [{ type: String }],
   },
   {
     timestamps: true,

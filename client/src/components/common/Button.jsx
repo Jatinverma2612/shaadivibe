@@ -13,26 +13,30 @@ export const Button = ({
   ...props
 }) => {
   const baseStyles =
-    'relative inline-flex items-center justify-center font-medium transition-all duration-300 rounded-lg select-none disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-royal-gold-500/50';
+    'relative inline-flex items-center justify-center font-medium transition-all duration-300 rounded-xl select-none disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-floral-gold/50 active:scale-[0.98]';
 
   const sizeStyles = {
-    sm: 'px-3 py-1.5 text-xs tracking-wider uppercase',
-    md: 'px-5 py-2.5 text-sm font-semibold tracking-wide',
-    lg: 'px-7 py-3.5 text-base font-semibold tracking-wide shadow-royal',
-  }[size] || 'px-5 py-2.5 text-sm';
+    sm: 'px-3.5 py-1.5 min-h-[38px] text-xs font-semibold tracking-wider uppercase',
+    md: 'px-5 py-2.5 min-h-[44px] text-sm font-semibold tracking-wide',
+    lg: 'px-7 py-3.5 min-h-[50px] text-base font-semibold tracking-wide shadow-royal',
+  }[size] || 'px-5 py-2.5 min-h-[44px] text-sm';
 
   const variantStyles = {
     primary:
-      'bg-royal-maroon-700 text-royal-gold-100 hover:bg-royal-maroon-600 border border-royal-gold-500/40 shadow-royal hover:shadow-gold-glow hover:border-royal-gold-400',
+      'bg-floral-burgundy text-white hover:bg-royal-maroon-600 border border-floral-gold/40 shadow-royal hover:shadow-gold-glow',
     gold:
-      'bg-gradient-to-r from-royal-gold-600 via-royal-gold-500 to-royal-gold-700 text-royal-brown-900 font-bold hover:brightness-110 shadow-royal hover:shadow-gold-glow border border-royal-gold-300',
+      'bg-gradient-to-r from-royal-gold-600 via-royal-gold-500 to-royal-gold-700 text-floral-brown font-bold hover:brightness-105 shadow-royal hover:shadow-gold-glow border border-floral-gold/50',
     outline:
-      'bg-royal-ivory-card text-royal-maroon-700 border-2 border-royal-gold-500/60 hover:bg-royal-gold-50 hover:border-royal-gold-600 shadow-sm',
+      'bg-white text-floral-burgundy border-2 border-floral-gold/60 hover:bg-floral-blush/60 hover:border-floral-gold shadow-sm',
     ghost:
-      'bg-transparent text-royal-maroon-700 hover:bg-royal-maroon-50/50 hover:text-royal-maroon-900',
+      'bg-transparent text-floral-burgundy hover:bg-floral-blush/60 hover:text-royal-maroon-900',
+    sage:
+      'bg-royal-sage text-white hover:bg-royal-sage-dark border border-royal-sage-light/40 shadow-sm',
     dark:
-      'bg-royal-maroon-900 text-royal-gold-200 hover:bg-royal-maroon-950 border border-royal-gold-600/30',
-  }[variant] || 'bg-royal-maroon-700 text-royal-gold-100';
+      'bg-royal-maroon-950 text-floral-gold hover:bg-black border border-floral-gold/40',
+    maroonOutline:
+      'bg-white/10 text-[#FFF9F4] border-2 border-floral-gold/80 hover:bg-white/20 hover:text-[#FDF3DA] shadow-sm',
+  }[variant] || 'bg-floral-burgundy text-white';
 
   return (
     <button

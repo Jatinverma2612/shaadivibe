@@ -6,6 +6,13 @@ import {
   fetchCurrentUser,
 } from '../services/api.js';
 
+const syncUserStores = () => {
+  try {
+    import('./cartStore.js').then(({ useCartStore }) => useCartStore.getState().initCart());
+    import('./wishlistStore.js').then(({ useWishlistStore }) => useWishlistStore.getState().initWishlist());
+  } catch {}
+};
+
 export const useAuthStore = create((set, get) => ({
   user: null,
   token: localStorage.getItem('shaadivibe_customer_token') || '',
@@ -26,7 +33,8 @@ export const useAuthStore = create((set, get) => ({
         error: null,
       });
     } catch (err) {
-      // Unauthenticated or expired token
+      // Unauthenticated or expired token: clean up invalid storage
+      localStorage.removeItem('shaadivibe_customer_token');
       set({
         user: null,
         token: '',
@@ -47,6 +55,7 @@ export const useAuthStore = create((set, get) => ({
         isLoading: false,
         error: null,
       });
+      syncUserStores();
       return res.user;
     } catch (err) {
       set({ isLoading: false, error: err.message || 'Login failed' });
@@ -65,6 +74,7 @@ export const useAuthStore = create((set, get) => ({
         isLoading: false,
         error: null,
       });
+      syncUserStores();
       return res.user;
     } catch (err) {
       set({ isLoading: false, error: err.message || 'Registration failed' });
@@ -84,6 +94,7 @@ export const useAuthStore = create((set, get) => ({
         isLoading: false,
         error: null,
       });
+      syncUserStores();
     }
   },
 

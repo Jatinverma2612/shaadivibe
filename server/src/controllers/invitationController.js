@@ -1,10 +1,7 @@
+import mongoose from 'mongoose';
 import { Invitation } from '../models/Invitation.js';
-import { sampleInvitation } from '../../../shared/constants/mockData.js';
+import { sampleInvitation } from '../constants/mockData.js';
 export { sampleInvitation };
-
-// In-memory cache for invitations created during current runtime session
-const sessionInvitations = new Map();
-sessionInvitations.set('priya-and-rohan', { ...sampleInvitation, status: 'published' });
 
 const generateSlug = (bride, groom, custom) => {
   if (custom && custom.trim()) {
@@ -19,10 +16,10 @@ const generateSlug = (bride, groom, custom) => {
 const isOwnerOrAdmin = (invitation, user) => {
   if (!user) return false;
   if (user.role === 'admin') return true;
-  if (!invitation.userId) return true; // Anonymous / unclaimed invitation
+  if (!invitation || !invitation.userId) return false; // Unassigned / anonymous invitations are not owned by any customer
   const invUserId = invitation.userId._id ? invitation.userId._id.toString() : invitation.userId.toString();
   const currentUserId = user._id ? user._id.toString() : (user.id ? user.id.toString() : '');
-  return invUserId === currentUserId;
+  return Boolean(invUserId && currentUserId && invUserId === currentUserId);
 };
 
 /**
@@ -41,7 +38,7 @@ export const getUserInvitations = async (req, res, next) => {
     // Customer only sees their own; Admin sees all
     if (req.user.role !== 'admin') {
       const userId = req.user._id || req.user.id;
-      query.$or = [{ userId }, { userId: null }];
+      query.userId = userId;
     }
 
     if (status && status !== 'all') {
@@ -51,7 +48,7 @@ export const getUserInvitations = async (req, res, next) => {
     if (search && search.trim()) {
       const searchRegex = new RegExp(search.trim(), 'i');
       query.$and = [
-        query.$or ? { $or: query.$or } : {},
+        query.userId ? { userId: query.userId } : {},
         {
           $or: [
             { brideName: searchRegex },
@@ -60,33 +57,14 @@ export const getUserInvitations = async (req, res, next) => {
           ],
         },
       ];
-      delete query.$or;
+      delete query.userId;
     }
 
-    let invitations = [];
-    let total = 0;
-
-    try {
-      total = await Invitation.countDocuments(query);
-      invitations = await Invitation.find(query)
-        .sort({ updatedAt: -1 })
-        .skip(skip)
-        .limit(limitNum);
-    } catch (dbErr) {
-      // Memory fallback
-      const allSession = Array.from(sessionInvitations.values());
-      const filtered = allSession.filter((inv) => {
-        if (req.user.role !== 'admin' && inv.userId && inv.userId !== (req.user._id || req.user.id)) {
-          return false;
-        }
-        if (status && status !== 'all' && inv.status !== status) {
-          return false;
-        }
-        return true;
-      });
-      total = filtered.length;
-      invitations = filtered.slice(skip, skip + limitNum);
-    }
+    const total = await Invitation.countDocuments(query);
+    const invitations = await Invitation.find(query)
+      .sort({ updatedAt: -1 })
+      .skip(skip)
+      .limit(limitNum);
 
     res.json({
       success: true,
@@ -110,23 +88,18 @@ export const getUserInvitations = async (req, res, next) => {
 export const getInvitationById = async (req, res, next) => {
   try {
     const { id } = req.params;
-    let invitation = null;
 
-    try {
-      invitation = await Invitation.findById(id);
-    } catch (e) {
-      // ignore
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ success: false, message: 'Invalid invitation ID format.' });
     }
 
-    if (!invitation) {
-      invitation = sessionInvitations.get(id) || Array.from(sessionInvitations.values()).find((inv) => inv._id === id || inv.id === id);
-    }
+    const invitation = await Invitation.findById(id);
 
     if (!invitation) {
       return res.status(404).json({ success: false, message: 'Invitation not found.' });
     }
 
-    // Ownership check: drafts are private to owner or admin
+    // Ownership check: drafts and invitations are private to owner or admin
     if (!isOwnerOrAdmin(invitation, req.user)) {
       return res.status(403).json({
         success: false,
@@ -149,18 +122,9 @@ export const getInvitationBySlug = async (req, res, next) => {
     const { slug } = req.params;
     const cleanSlug = slug.toLowerCase().trim();
 
-    let invitation = null;
-    try {
-      invitation = await Invitation.findOne({ slug: cleanSlug });
-    } catch (dbErr) {
-      // ignore
-    }
+    let invitation = await Invitation.findOne({ slug: cleanSlug });
 
-    if (!invitation) {
-      invitation = sessionInvitations.get(cleanSlug);
-    }
-
-    // Default demo if looking for sample or preview
+    // Intended public demo sample invitation fallback for sample/demo/priya-and-rohan
     if (!invitation && (cleanSlug === 'sample' || cleanSlug === 'demo' || cleanSlug === 'priya-and-rohan')) {
       invitation = { ...sampleInvitation, status: 'published' };
     }
@@ -218,12 +182,37 @@ export const createInvitation = async (req, res, next) => {
       });
     }
 
+    // Guard against duplicate draft creation: If an existing ID was provided by the client, route to update
+    const existingId = req.body._id || req.body.id;
+    if (existingId && !existingId.startsWith('local_')) {
+      if (!mongoose.Types.ObjectId.isValid(existingId)) {
+        return res.status(400).json({ success: false, message: 'Invalid invitation ID format.' });
+      }
+
+      const existing = await Invitation.findById(existingId);
+      if (!existing) {
+        return res.status(404).json({ success: false, message: 'Invitation not found.' });
+      }
+
+      // If existing has an owner and user is not owner/admin -> 403
+      if (existing.userId && !isOwnerOrAdmin(existing, req.user)) {
+        return res.status(403).json({
+          success: false,
+          message: 'Access denied. You do not have permission to modify this invitation.',
+        });
+      }
+
+      req.params = { id: existingId };
+      return updateInvitation(req, res, next);
+    }
+
     const uniqueSlug = generateSlug(brideName, groomName, customSlug);
+    // Never trust client-supplied userId: strictly derive from req.user
     const userId = req.user ? (req.user._id || req.user.id) : null;
 
     const inviteData = {
       slug: uniqueSlug,
-      userId: userId || undefined,
+      userId: userId || null,
       themeSlug: themeSlug || 'royal-udaipur-palace',
       brideName: brideName.trim(),
       groomName: groomName.trim(),
@@ -246,21 +235,20 @@ export const createInvitation = async (req, res, next) => {
     let saved = null;
     try {
       saved = await Invitation.create(inviteData);
-    } catch (dbErr) {
-      console.warn('[InvitationController] Database unavailable, saving in session storage.');
-      saved = { ...inviteData, _id: `session_${Date.now()}` };
-    }
-
-    sessionInvitations.set(uniqueSlug, saved);
-    if (saved._id) {
-      sessionInvitations.set(saved._id.toString(), saved);
+    } catch (createErr) {
+      if (createErr.code === 11000 && createErr.keyPattern?.slug) {
+        inviteData.slug = generateSlug(brideName, groomName, `${brideName}-${groomName}-${Date.now()}`);
+        saved = await Invitation.create(inviteData);
+      } else {
+        throw createErr;
+      }
     }
 
     res.status(201).json({
       success: true,
       message: status === 'published' ? 'Invitation published successfully!' : 'Draft saved successfully!',
       data: saved,
-      shareUrl: `/invite/${uniqueSlug}`,
+      shareUrl: `/invite/${saved.slug}`,
     });
   } catch (error) {
     next(error);
@@ -268,64 +256,97 @@ export const createInvitation = async (req, res, next) => {
 };
 
 /**
- * Update an existing invitation (with ownership check)
+ * Update an existing invitation (with ownership check and atomic claiming)
  * PUT /api/invitations/:id
  */
 export const updateInvitation = async (req, res, next) => {
   try {
     const { id } = req.params;
-    let existing = null;
 
-    try {
-      existing = await Invitation.findById(id);
-    } catch (dbErr) {
-      // ignore
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ success: false, message: 'Invalid invitation ID format.' });
     }
 
-    if (!existing) {
-      existing = sessionInvitations.get(id);
-    }
-
+    const existing = await Invitation.findById(id);
     if (!existing) {
       return res.status(404).json({ success: false, message: 'Invitation not found.' });
     }
 
-    // Ownership check
-    if (!isOwnerOrAdmin(existing, req.user)) {
-      return res.status(403).json({
-        success: false,
-        message: 'Access denied. You do not have permission to modify this invitation.',
+    // Clean update payload: prevent client-supplied userId, slug, _id tampering
+    const updatePayload = { ...req.body };
+    delete updatePayload._id;
+    delete updatePayload.id;
+    delete updatePayload.__v;
+    delete updatePayload.userId;
+    delete updatePayload.slug;
+
+    // Case 1: Draft already has an owner
+    if (existing.userId) {
+      if (!isOwnerOrAdmin(existing, req.user)) {
+        return res.status(403).json({
+          success: false,
+          message: 'Access denied. You do not have permission to modify this invitation.',
+        });
+      }
+
+      const updated = await Invitation.findByIdAndUpdate(id, updatePayload, { new: true, runValidators: true });
+      return res.json({
+        success: true,
+        message: 'Invitation updated successfully.',
+        data: updated,
       });
     }
 
-    // Prepare update fields (disallow unauthorized ownership or slug hijacking)
-    const updatePayload = { ...req.body };
-    delete updatePayload._id;
-    delete updatePayload.__v;
-
-    // If current draft was unclaimed and customer is now logged in, claim ownership
-    if (!existing.userId && req.user) {
-      updatePayload.userId = req.user._id || req.user.id;
+    // Case 2: Draft is currently unowned (anonymous draft)
+    // If user is unauthenticated, allow updating the anonymous draft content without setting userId
+    if (!req.user) {
+      const updated = await Invitation.findByIdAndUpdate(id, updatePayload, { new: true, runValidators: true });
+      return res.json({
+        success: true,
+        message: 'Draft updated successfully.',
+        data: updated,
+      });
     }
 
-    let updated = null;
-    try {
-      updated = await Invitation.findByIdAndUpdate(id, updatePayload, { new: true, runValidators: true });
-    } catch (dbErr) {
-      // Memory fallback
+    // User is authenticated: Atomic conditional ownership claim
+    // To prevent race conditions / concurrent claiming, use findOneAndUpdate({ _id: id, userId: null })
+    const targetUserId = req.user._id || req.user.id;
+    const claimPayload = { ...updatePayload, userId: targetUserId };
+
+    const claimed = await Invitation.findOneAndUpdate(
+      { _id: id, userId: null },
+      { $set: claimPayload },
+      { new: true, runValidators: true }
+    );
+
+    if (!claimed) {
+      // Re-fetch to determine why atomic claim did not match
+      const freshDoc = await Invitation.findById(id);
+      if (!freshDoc) {
+        return res.status(404).json({ success: false, message: 'Invitation not found.' });
+      }
+
+      const freshOwnerId = freshDoc.userId ? freshDoc.userId.toString() : null;
+      if (freshOwnerId && freshOwnerId !== targetUserId.toString() && req.user.role !== 'admin') {
+        return res.status(403).json({
+          success: false,
+          message: 'Draft is already owned by another customer and cannot be claimed.',
+        });
+      }
+
+      // If already claimed by this user in a parallel request, update it
+      const updated = await Invitation.findByIdAndUpdate(id, updatePayload, { new: true, runValidators: true });
+      return res.json({
+        success: true,
+        message: 'Invitation updated successfully.',
+        data: updated,
+      });
     }
 
-    if (!updated) {
-      updated = { ...existing.toObject ? existing.toObject() : existing, ...updatePayload };
-    }
-
-    sessionInvitations.set(updated.slug, updated);
-    sessionInvitations.set(id, updated);
-
-    res.json({
+    return res.json({
       success: true,
-      message: 'Invitation updated successfully.',
-      data: updated,
+      message: 'Invitation claimed and updated successfully.',
+      data: claimed,
     });
   } catch (error) {
     next(error);
@@ -339,23 +360,17 @@ export const updateInvitation = async (req, res, next) => {
 export const publishInvitation = async (req, res, next) => {
   try {
     const { id } = req.params;
-    let existing = null;
 
-    try {
-      existing = await Invitation.findById(id);
-    } catch (dbErr) {
-      // ignore
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ success: false, message: 'Invalid invitation ID format.' });
     }
 
-    if (!existing) {
-      existing = sessionInvitations.get(id);
-    }
-
+    const existing = await Invitation.findById(id);
     if (!existing) {
       return res.status(404).json({ success: false, message: 'Invitation not found.' });
     }
 
-    // Ownership check
+    // Ownership check: must be owner or admin
     if (!isOwnerOrAdmin(existing, req.user)) {
       return res.status(403).json({
         success: false,
@@ -371,21 +386,11 @@ export const publishInvitation = async (req, res, next) => {
       });
     }
 
-    let updated = null;
-    try {
-      updated = await Invitation.findByIdAndUpdate(
-        id,
-        { status: 'published' },
-        { new: true }
-      );
-    } catch (e) {}
-
-    if (!updated) {
-      updated = { ...existing.toObject ? existing.toObject() : existing, status: 'published' };
-    }
-
-    sessionInvitations.set(updated.slug, updated);
-    sessionInvitations.set(id, updated);
+    const updated = await Invitation.findByIdAndUpdate(
+      id,
+      { status: 'published' },
+      { new: true, runValidators: true }
+    );
 
     res.json({
       success: true,
@@ -405,18 +410,12 @@ export const publishInvitation = async (req, res, next) => {
 export const unpublishInvitation = async (req, res, next) => {
   try {
     const { id } = req.params;
-    let existing = null;
 
-    try {
-      existing = await Invitation.findById(id);
-    } catch (dbErr) {
-      // ignore
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ success: false, message: 'Invalid invitation ID format.' });
     }
 
-    if (!existing) {
-      existing = sessionInvitations.get(id);
-    }
-
+    const existing = await Invitation.findById(id);
     if (!existing) {
       return res.status(404).json({ success: false, message: 'Invitation not found.' });
     }
@@ -429,21 +428,11 @@ export const unpublishInvitation = async (req, res, next) => {
       });
     }
 
-    let updated = null;
-    try {
-      updated = await Invitation.findByIdAndUpdate(
-        id,
-        { status: 'draft' },
-        { new: true }
-      );
-    } catch (e) {}
-
-    if (!updated) {
-      updated = { ...existing.toObject ? existing.toObject() : existing, status: 'draft' };
-    }
-
-    sessionInvitations.set(updated.slug, updated);
-    sessionInvitations.set(id, updated);
+    const updated = await Invitation.findByIdAndUpdate(
+      id,
+      { status: 'draft' },
+      { new: true, runValidators: true }
+    );
 
     res.json({
       success: true,
@@ -462,18 +451,12 @@ export const unpublishInvitation = async (req, res, next) => {
 export const deleteInvitation = async (req, res, next) => {
   try {
     const { id } = req.params;
-    let existing = null;
 
-    try {
-      existing = await Invitation.findById(id);
-    } catch (dbErr) {
-      // ignore
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ success: false, message: 'Invalid invitation ID format.' });
     }
 
-    if (!existing) {
-      existing = sessionInvitations.get(id);
-    }
-
+    const existing = await Invitation.findById(id);
     if (!existing) {
       return res.status(404).json({ success: false, message: 'Invitation not found.' });
     }
@@ -486,14 +469,7 @@ export const deleteInvitation = async (req, res, next) => {
       });
     }
 
-    try {
-      await Invitation.findByIdAndDelete(id);
-    } catch (e) {}
-
-    sessionInvitations.delete(id);
-    if (existing.slug) {
-      sessionInvitations.delete(existing.slug);
-    }
+    await Invitation.findByIdAndDelete(id);
 
     res.json({
       success: true,

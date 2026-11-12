@@ -2,7 +2,6 @@ import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
 import crypto from 'crypto';
-
 import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -26,31 +25,78 @@ const storage = multer.diskStorage({
     // Sanitize extension and generate random cryptographically strong filename
     const sanitizedOriginal = path.basename(file.originalname).replace(/[^a-zA-Z0-9.-]/g, '_');
     const ext = path.extname(sanitizedOriginal).toLowerCase();
+    const prefix = ext === '.mp4' || ext === '.mov' ? 'video' : ext === '.zip' ? 'template' : 'asset';
     const uniqueHash = crypto.randomBytes(12).toString('hex');
-    const safeFilename = `photo_${Date.now()}_${uniqueHash}${ext}`;
+    const safeFilename = `${prefix}_${Date.now()}_${uniqueHash}${ext}`;
     cb(null, safeFilename);
   },
 });
 
-// File filter to only allow safe image types
-const fileFilter = (req, file, cb) => {
-  const allowedMimeTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/jpg'];
-  const allowedExtensions = ['.jpg', '.jpeg', '.png', '.webp'];
-  
-  const ext = path.extname(path.basename(file.originalname)).toLowerCase();
+// File filter for customer photos: strictly JPG, PNG, and WebP with matched MIME type
+const customerPhotoFilter = (req, file, cb) => {
+  const allowedExtToMimes = {
+    '.jpg': ['image/jpeg', 'image/jpg'],
+    '.jpeg': ['image/jpeg', 'image/jpg'],
+    '.png': ['image/png'],
+    '.webp': ['image/webp'],
+  };
 
-  if (allowedMimeTypes.includes(file.mimetype) && allowedExtensions.includes(ext)) {
+  const ext = path.extname(path.basename(file.originalname)).toLowerCase();
+  const validMimes = allowedExtToMimes[ext];
+
+  if (validMimes && validMimes.includes(file.mimetype.toLowerCase())) {
     cb(null, true);
   } else {
-    cb(new Error('Invalid file format. Only JPG, PNG, and WebP images are allowed.'), false);
+    cb(new Error('Invalid photo format. Only JPG, PNG, and WebP images are allowed for customer photos.'), false);
   }
 };
 
-export const upload = multer({
+// File filter for admin theme assets: JPG, PNG, WebP, MP4, MOV, and ZIP with paired MIME verification
+const adminAssetFilter = (req, file, cb) => {
+  const allowedExtToMimes = {
+    '.jpg': ['image/jpeg', 'image/jpg'],
+    '.jpeg': ['image/jpeg', 'image/jpg'],
+    '.png': ['image/png'],
+    '.webp': ['image/webp'],
+    '.mp4': ['video/mp4'],
+    '.mov': ['video/quicktime'],
+    '.zip': [
+      'application/zip',
+      'application/x-zip-compressed',
+      'application/octet-stream',
+      'application/x-zip',
+    ],
+  };
+
+  const ext = path.extname(path.basename(file.originalname)).toLowerCase();
+  const validMimes = allowedExtToMimes[ext];
+
+  if (validMimes && validMimes.includes(file.mimetype.toLowerCase())) {
+    cb(null, true);
+  } else {
+    cb(new Error('Invalid asset format. Allowed formats: JPG, PNG, WebP, MP4, MOV, and ZIP.'), false);
+  }
+};
+
+// Customer photo upload middleware: 5MB limit, max 6 photos per request
+export const customerPhotoUpload = multer({
   storage,
   limits: {
     fileSize: 5 * 1024 * 1024, // 5MB limit
-    files: 6, // max 6 photos per batch
+    files: 6,
   },
-  fileFilter,
+  fileFilter: customerPhotoFilter,
 });
+
+// Admin theme asset upload middleware: 100MB limit (supports HD video templates & packages)
+export const adminThemeAssetUpload = multer({
+  storage,
+  limits: {
+    fileSize: 100 * 1024 * 1024, // 100MB limit
+    files: 10,
+  },
+  fileFilter: adminAssetFilter,
+});
+
+export const upload = customerPhotoUpload;
+export default customerPhotoUpload;

@@ -35,48 +35,49 @@ export const FaqSection = ({ content }) => {
   ];
 
   return (
-    <section id="faqs" className="py-20 bg-royal-ivory-warm/40 relative">
+    <section id="faqs" className="py-16 sm:py-20 bg-floral-blush/30 relative">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-16">
-          <span className="text-xs font-bold uppercase tracking-widest text-royal-gold-700">
+        <div className="text-center mb-12 sm:mb-16">
+          <span className="text-xs font-bold uppercase tracking-widest text-floral-gold">
             Got Questions?
           </span>
-          <h2 className="font-serif text-3xl sm:text-4xl md:text-5xl font-bold text-royal-maroon-800 tracking-wide mt-1">
+          <h2 className="font-serif text-3xl sm:text-4xl md:text-5xl font-bold text-floral-burgundy tracking-wide mt-1">
             Frequently Asked Questions
           </h2>
-          <p className="text-xs sm:text-sm text-royal-brown-600 max-w-md mx-auto mt-2">
+          <p className="text-xs sm:text-sm text-floral-brown/85 max-w-md mx-auto mt-2 leading-relaxed">
             Everything you need to know about creating and sharing your royal digital wedding invitation.
           </p>
-          <FloralDivider className="w-40 h-3 text-royal-gold-500 mx-auto mt-3" />
+          <FloralDivider className="w-40 h-3 text-floral-gold mx-auto mt-3" />
         </div>
 
-        <div className="space-y-4">
+        <div className="space-y-3.5">
           {faqs.map((faq, index) => {
             const isOpen = openIndex === index;
             return (
               <Card
                 key={index}
                 ornate={false}
-                className="p-0 overflow-hidden bg-royal-ivory-card border border-royal-gold-400/40 shadow-sm transition-all duration-200"
+                className="p-0 overflow-hidden bg-white border border-floral-gold/30 shadow-sm rounded-2xl transition-all duration-200"
               >
                 <button
                   type="button"
                   onClick={() => setOpenIndex(isOpen ? -1 : index)}
-                  className="w-full px-6 py-5 text-left flex items-center justify-between gap-4 font-serif text-base sm:text-lg font-bold text-royal-maroon-800 hover:text-royal-maroon-600 transition-colors"
+                  className="w-full px-5 sm:px-6 py-4 sm:py-5 text-left flex items-center justify-between gap-3 font-serif text-base sm:text-lg font-bold text-floral-burgundy hover:text-royal-maroon-600 transition-colors"
+                  aria-expanded={isOpen}
                 >
                   <span className="flex items-center gap-3">
-                    <HelpCircle className="w-5 h-5 text-royal-gold-600 shrink-0" />
+                    <HelpCircle className="w-4 h-4 sm:w-5 sm:h-5 text-floral-gold shrink-0" />
                     <span>{faq.question}</span>
                   </span>
                   <ChevronDown
-                    className={`w-5 h-5 text-royal-gold-600 shrink-0 transform transition-transform duration-300 ${
+                    className={`w-5 h-5 text-floral-gold shrink-0 transform transition-transform duration-300 ${
                       isOpen ? 'rotate-180' : ''
                     }`}
                   />
                 </button>
 
                 {isOpen && (
-                  <div className="px-6 pb-6 pt-1 text-xs sm:text-sm text-royal-brown-700 leading-relaxed border-t border-royal-gold-400/20 font-medium">
+                  <div className="px-5 sm:px-6 pb-5 pt-1 text-xs sm:text-sm text-floral-brown leading-relaxed border-t border-floral-gold/20 font-medium">
                     {faq.answer}
                   </div>
                 )}

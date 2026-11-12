@@ -3,6 +3,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { weddingDetailsSchema } from '../../utils/validationSchemas.js';
 import { useCustomizationStore } from '../../store/customizationStore.js';
+import { saveInvitation } from '../../services/api.js';
 import { Input, Textarea } from '../../components/common/Input.jsx';
 import { Button } from '../../components/common/Button.jsx';
 import { Card } from '../../components/common/Card.jsx';
@@ -15,12 +16,31 @@ import {
   Sparkles,
   ArrowRight,
   Heart,
+  Edit3,
+  Save,
+  Loader2,
+  CheckCircle2,
+  AlertCircle,
+  X,
+  Check,
 } from 'lucide-react';
 import { FloralDivider } from '../../components/common/Motifs.jsx';
 
 export const Step1Details = ({ onNext }) => {
   const store = useCustomizationStore();
   const [editingEventId, setEditingEventId] = useState(null);
+  const [editingEventData, setEditingEventData] = useState({
+    title: '',
+    date: '',
+    time: '',
+    venue: '',
+    description: '',
+  });
+
+  // Midway draft saving state
+  const [isSavingDraft, setIsSavingDraft] = useState(false);
+  const [draftFeedback, setDraftFeedback] = useState('');
+  const [draftError, setDraftError] = useState('');
 
   // New ceremony state for adding events
   const [newEvent, setNewEvent] = useState({
@@ -36,6 +56,7 @@ export const Step1Details = ({ onNext }) => {
   const {
     register,
     handleSubmit,
+    getValues,
     formState: { errors },
   } = useForm({
     resolver: zodResolver(weddingDetailsSchema),
@@ -69,6 +90,85 @@ export const Step1Details = ({ onNext }) => {
       },
     });
     onNext();
+  };
+
+  const handleSaveDraft = async () => {
+    setIsSavingDraft(true);
+    setDraftFeedback('');
+    setDraftError('');
+    store.setSaveStatus('saving');
+
+    const values = getValues();
+    store.updateDetails({
+      brideName: values.brideName,
+      groomName: values.groomName,
+      weddingDate: values.weddingDate,
+      weddingTime: values.weddingTime,
+      language: values.language,
+      tagline: values.tagline,
+      familyMessage: values.familyMessage,
+      venue: {
+        name: values.venueName,
+        address: values.venueAddress,
+        mapUrl: values.venueMapUrl,
+      },
+    });
+
+    try {
+      const payload = {
+        _id: store.invitationId || undefined,
+        themeSlug: store.selectedThemeSlug,
+        brideName: values.brideName?.trim() || store.brideName,
+        groomName: values.groomName?.trim() || store.groomName,
+        weddingDate: values.weddingDate || store.weddingDate,
+        weddingTime: values.weddingTime || store.weddingTime,
+        language: values.language || store.language,
+        tagline: values.tagline || store.tagline,
+        familyMessage: values.familyMessage || store.familyMessage,
+        venue: {
+          name: values.venueName || store.venue.name,
+          address: values.venueAddress || store.venue.address,
+          mapUrl: values.venueMapUrl || store.venue.mapUrl,
+        },
+        photos: store.photos,
+        interactiveCards: store.interactiveCards,
+        events: store.events,
+        status: 'draft',
+      };
+      const res = await saveInvitation(payload);
+      if (res.data?._id) {
+        store.setInvitationId(res.data._id, res.data.slug);
+      }
+      store.setSaveStatus('saved');
+      setDraftFeedback('Draft saved successfully to server!');
+      setTimeout(() => setDraftFeedback(''), 4500);
+    } catch (err) {
+      store.setSaveStatus('error', err.message);
+      setDraftError(err.message || 'Failed to save draft.');
+    } finally {
+      setIsSavingDraft(false);
+    }
+  };
+
+  const handleStartEditEvent = (evt) => {
+    setEditingEventId(evt.id);
+    setEditingEventData({
+      title: evt.title || '',
+      date: evt.date || '',
+      time: evt.time || '',
+      venue: evt.venue || '',
+      description: evt.description || '',
+    });
+  };
+
+  const handleSaveEventEdit = (id) => {
+    if (!editingEventData.title.trim()) return;
+    store.updateEvent(id, editingEventData);
+    setEditingEventId(null);
+  };
+
+  const handleCancelEventEdit = () => {
+    setEditingEventId(null);
   };
 
   const handleAddEvent = () => {
@@ -205,24 +305,121 @@ export const Step1Details = ({ onNext }) => {
           {store.events.map((evt, idx) => (
             <div
               key={evt.id || idx}
-              className="flex items-center justify-between p-3.5 bg-royal-ivory-warm/60 border border-royal-gold-300/60 rounded-xl"
+              className="p-3.5 bg-royal-ivory-warm/60 border border-royal-gold-300/60 rounded-xl"
             >
-              <div className="space-y-0.5">
-                <span className="font-serif font-bold text-royal-maroon-800 text-sm block">
-                  {evt.title}
-                </span>
-                <span className="text-xs text-royal-brown-600">
-                  {evt.date} • {evt.time} {evt.venue && `• ${evt.venue}`}
-                </span>
-              </div>
-              <button
-                type="button"
-                onClick={() => store.removeEvent(evt.id)}
-                className="p-1.5 text-royal-brown-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                title="Remove Ceremony"
-              >
-                <Trash2 className="w-4 h-4" />
-              </button>
+              {editingEventId === evt.id ? (
+                /* Inline Edit Mode */
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between pb-2 border-b border-royal-gold-200">
+                    <span className="text-xs font-bold uppercase tracking-wider text-royal-maroon-800">
+                      Editing Ceremony: {evt.title}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={handleCancelEventEdit}
+                      className="p-1 text-royal-brown-500 hover:text-royal-brown-800 rounded"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                    <input
+                      type="text"
+                      placeholder="Ceremony Title"
+                      value={editingEventData.title}
+                      onChange={(e) => setEditingEventData({ ...editingEventData, title: e.target.value })}
+                      className="px-2.5 py-1.5 text-xs rounded-lg border border-royal-gold-300 bg-white"
+                    />
+                    <input
+                      type="text"
+                      placeholder="Date / Day"
+                      value={editingEventData.date}
+                      onChange={(e) => setEditingEventData({ ...editingEventData, date: e.target.value })}
+                      className="px-2.5 py-1.5 text-xs rounded-lg border border-royal-gold-300 bg-white"
+                    />
+                    <input
+                      type="text"
+                      placeholder="Time"
+                      value={editingEventData.time}
+                      onChange={(e) => setEditingEventData({ ...editingEventData, time: e.target.value })}
+                      className="px-2.5 py-1.5 text-xs rounded-lg border border-royal-gold-300 bg-white"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    <input
+                      type="text"
+                      placeholder="Ceremony Venue"
+                      value={editingEventData.venue}
+                      onChange={(e) => setEditingEventData({ ...editingEventData, venue: e.target.value })}
+                      className="px-2.5 py-1.5 text-xs rounded-lg border border-royal-gold-300 bg-white"
+                    />
+                    <input
+                      type="text"
+                      placeholder="Brief Ritual Description"
+                      value={editingEventData.description}
+                      onChange={(e) => setEditingEventData({ ...editingEventData, description: e.target.value })}
+                      className="px-2.5 py-1.5 text-xs rounded-lg border border-royal-gold-300 bg-white"
+                    />
+                  </div>
+
+                  <div className="flex items-center gap-2 pt-1">
+                    <Button
+                      type="button"
+                      variant="gold"
+                      size="sm"
+                      onClick={() => handleSaveEventEdit(evt.id)}
+                    >
+                      <Check className="w-3.5 h-3.5 mr-1" />
+                      Save Ceremony Changes
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleCancelEventEdit}
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                /* Display Mode */
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <span className="font-serif font-bold text-royal-maroon-800 text-sm block">
+                      {evt.title}
+                    </span>
+                    <span className="text-xs text-royal-brown-600">
+                      {evt.date} • {evt.time} {evt.venue && `• ${evt.venue}`}
+                    </span>
+                    {evt.description && (
+                      <p className="text-[11px] text-royal-brown-500 italic mt-0.5">
+                        {evt.description}
+                      </p>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => handleStartEditEvent(evt)}
+                      className="p-1.5 text-royal-brown-500 hover:text-royal-maroon-800 hover:bg-royal-gold-100/60 rounded-lg transition-colors"
+                      title="Edit Ceremony"
+                    >
+                      <Edit3 className="w-4 h-4" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => store.removeEvent(evt.id)}
+                      className="p-1.5 text-royal-brown-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                      title="Remove Ceremony"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           ))}
         </div>
@@ -289,8 +486,38 @@ export const Step1Details = ({ onNext }) => {
         </div>
       </Card>
 
-      {/* Navigation Next */}
-      <div className="flex justify-end pt-4">
+      {/* Save Draft Feedback Alerts */}
+      {draftFeedback && (
+        <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center gap-2 text-xs text-emerald-800">
+          <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-600" />
+          <span>{draftFeedback}</span>
+        </div>
+      )}
+      {draftError && (
+        <div className="p-3 bg-red-50 border border-red-200 rounded-xl flex items-center gap-2 text-xs text-red-800">
+          <AlertCircle className="w-4 h-4 shrink-0 text-red-600" />
+          <span>{draftError}</span>
+        </div>
+      )}
+
+      {/* Navigation Buttons: Save Draft and Continue */}
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4">
+        <Button
+          type="button"
+          variant="outline"
+          size="md"
+          onClick={handleSaveDraft}
+          disabled={isSavingDraft}
+          className="w-full sm:w-auto border-royal-gold-400 text-royal-maroon-800 hover:bg-royal-gold-50"
+        >
+          {isSavingDraft ? (
+            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+          ) : (
+            <Save className="w-4 h-4 mr-2 text-royal-gold-600" />
+          )}
+          <span>{isSavingDraft ? 'Saving Draft...' : 'Save Draft'}</span>
+        </Button>
+
         <Button type="submit" variant="gold" size="lg" className="w-full sm:w-auto">
           <span>Continue to Photos (Step 2)</span>
           <ArrowRight className="w-5 h-5 ml-2" />

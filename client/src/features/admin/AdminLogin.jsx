@@ -4,12 +4,12 @@ import { adminLogin } from '../../services/api.js';
 import { Input } from '../../components/common/Input.jsx';
 import { Button } from '../../components/common/Button.jsx';
 import { Card } from '../../components/common/Card.jsx';
-import { FloralDivider, DiyaMotif } from '../../components/common/Motifs.jsx';
-import { Shield, Lock, Mail, AlertCircle } from 'lucide-react';
+import { FloralDivider } from '../../components/common/Motifs.jsx';
+import { Shield, Lock, AlertCircle } from 'lucide-react';
 
 export const AdminLogin = ({ onLoginSuccess }) => {
-  const [email, setEmail] = useState('admin@shaadivibe.com');
-  const [password, setPassword] = useState('Admin@123456');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const navigate = useNavigate();
@@ -34,23 +34,23 @@ export const AdminLogin = ({ onLoginSuccess }) => {
     <div className="min-h-[75vh] flex items-center justify-center p-4">
       <Card
         ornate={true}
-        className="w-full max-w-md p-8 sm:p-10 text-center bg-royal-ivory-card border-2 border-royal-gold-500/50 shadow-royal-lg"
+        className="w-full max-w-md p-6 sm:p-10 text-center bg-white border border-floral-gold/40 shadow-royal rounded-2xl"
       >
-        <div className="w-14 h-14 rounded-full bg-royal-maroon-700 border-2 border-royal-gold-400 flex items-center justify-center text-royal-gold-300 mx-auto mb-3 shadow-royal">
-          <Shield className="w-7 h-7" />
+        <div className="w-12 h-12 rounded-full bg-floral-burgundy border border-floral-gold flex items-center justify-center text-floral-gold mx-auto mb-3 shadow-royal">
+          <Shield className="w-6 h-6" />
         </div>
 
-        <h2 className="font-serif text-2xl sm:text-3xl font-bold text-royal-maroon-800">
+        <h2 className="font-serif text-2xl sm:text-3xl font-bold text-floral-burgundy">
           Admin Portal Login
         </h2>
-        <p className="text-xs uppercase tracking-widest text-royal-gold-700 font-semibold mt-1">
+        <p className="text-xs uppercase tracking-widest text-floral-gold font-semibold mt-1">
           ShaadiVibe Management Suite
         </p>
-        <FloralDivider className="w-36 h-3 text-royal-gold-500 mx-auto my-4" />
+        <FloralDivider className="w-36 h-3 text-floral-gold mx-auto my-3" />
 
         {error && (
-          <div className="p-3 mb-5 bg-red-50 border border-red-200 rounded-xl flex items-center gap-2 text-xs text-red-700 text-left">
-            <AlertCircle className="w-4 h-4 shrink-0" />
+          <div className="p-3 mb-4 bg-red-50 border border-red-200 rounded-xl flex items-center gap-2 text-xs text-red-700 text-left">
+            <AlertCircle className="w-4 h-4 shrink-0 text-red-600" />
             <span>{error}</span>
           </div>
         )}
@@ -62,7 +62,8 @@ export const AdminLogin = ({ onLoginSuccess }) => {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
-            placeholder="admin@shaadivibe.com"
+            placeholder="admin@example.com"
+            autoComplete="username"
           />
 
           <Input
@@ -72,11 +73,8 @@ export const AdminLogin = ({ onLoginSuccess }) => {
             onChange={(e) => setPassword(e.target.value)}
             required
             placeholder="••••••••••••"
+            autoComplete="current-password"
           />
-
-          <div className="p-3 bg-royal-gold-50 rounded-lg border border-royal-gold-300/60 text-[11px] text-royal-brown-700">
-            <strong>Dev Credentials:</strong> admin@shaadivibe.com / Admin@123456
-          </div>
 
           <Button
             type="submit"

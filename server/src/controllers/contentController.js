@@ -1,24 +1,16 @@
 import { SiteContent } from '../models/SiteContent.js';
-
-import { defaultSiteContent } from '../../../shared/constants/mockData.js';
+import { defaultSiteContent } from '../constants/mockData.js';
 export { defaultSiteContent };
-
-// In-memory fallback
-const memoryContent = new Map(Object.entries(defaultSiteContent));
 
 export const getContentBySection = async (req, res, next) => {
   try {
     const { section } = req.params;
-    let content = null;
+    const cleanSection = section.toLowerCase().trim();
 
-    try {
-      content = await SiteContent.findOne({ section: section.toLowerCase() });
-    } catch (err) {
-      // ignore
-    }
+    const content = await SiteContent.findOne({ section: cleanSection });
 
     if (!content) {
-      const fallback = memoryContent.get(section.toLowerCase()) || defaultSiteContent[section.toLowerCase()];
+      const fallback = defaultSiteContent[cleanSection];
       if (fallback) {
         return res.json({ success: true, data: fallback });
       }
@@ -40,23 +32,17 @@ export const updateContentBySection = async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'Data is required.' });
     }
 
-    let updated = null;
-    try {
-      updated = await SiteContent.findOneAndUpdate(
-        { section: section.toLowerCase() },
-        { data },
-        { new: true, upsert: true }
-      );
-    } catch (dbErr) {
-      console.warn('[ContentController] DB unavailable, updating memory content.');
-    }
-
-    memoryContent.set(section.toLowerCase(), data);
+    const cleanSection = section.toLowerCase().trim();
+    const updated = await SiteContent.findOneAndUpdate(
+      { section: cleanSection },
+      { data },
+      { new: true, upsert: true, runValidators: true }
+    );
 
     res.json({
       success: true,
       message: `Section "${section}" updated successfully.`,
-      data: updated ? updated.data : data,
+      data: updated.data,
     });
   } catch (error) {
     next(error);

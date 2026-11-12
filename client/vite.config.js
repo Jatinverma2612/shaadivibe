@@ -7,7 +7,10 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
-      '@shared': path.resolve(__dirname, '../shared'),
+      'framer-motion': path.resolve(__dirname, '../node_modules/framer-motion/dist/cjs/index.js'),
+      'react-hook-form': path.resolve(__dirname, '../node_modules/react-hook-form/dist/index.cjs.js'),
+      '@hookform/resolvers/zod': path.resolve(__dirname, '../node_modules/@hookform/resolvers/zod/dist/zod.module.js'),
+      '@hookform/resolvers': path.resolve(__dirname, '../node_modules/@hookform/resolvers/dist/resolvers.module.js'),
     },
   },
   server: {

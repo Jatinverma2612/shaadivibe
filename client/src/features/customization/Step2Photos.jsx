@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { useCustomizationStore } from '../../store/customizationStore.js';
-import { uploadPhotos as uploadPhotosApi } from '../../services/api.js';
+import { uploadPhotos as uploadPhotosApi, saveInvitation } from '../../services/api.js';
 import { photoUploadValidation } from '../../utils/validationSchemas.js';
 import { Card } from '../../components/common/Card.jsx';
 import { Button } from '../../components/common/Button.jsx';
@@ -13,6 +13,7 @@ import {
   AlertCircle,
   CheckCircle2,
   Loader2,
+  Save,
 } from 'lucide-react';
 
 export const Step2Photos = ({ onNext, onPrev }) => {
@@ -21,6 +22,49 @@ export const Step2Photos = ({ onNext, onPrev }) => {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState('');
   const [uploadSuccess, setUploadSuccess] = useState('');
+
+  // Midway draft saving state
+  const [isSavingDraft, setIsSavingDraft] = useState(false);
+  const [draftFeedback, setDraftFeedback] = useState('');
+  const [draftError, setDraftError] = useState('');
+
+  const handleSaveDraft = async () => {
+    setIsSavingDraft(true);
+    setDraftFeedback('');
+    setDraftError('');
+    store.setSaveStatus('saving');
+
+    try {
+      const payload = {
+        _id: store.invitationId || undefined,
+        themeSlug: store.selectedThemeSlug,
+        brideName: store.brideName,
+        groomName: store.groomName,
+        weddingDate: store.weddingDate,
+        weddingTime: store.weddingTime,
+        language: store.language,
+        tagline: store.tagline,
+        familyMessage: store.familyMessage,
+        venue: store.venue,
+        photos: store.photos,
+        interactiveCards: store.interactiveCards,
+        events: store.events,
+        status: 'draft',
+      };
+      const res = await saveInvitation(payload);
+      if (res.data?._id) {
+        store.setInvitationId(res.data._id, res.data.slug);
+      }
+      store.setSaveStatus('saved');
+      setDraftFeedback('Draft photos and details saved to server!');
+      setTimeout(() => setDraftFeedback(''), 4500);
+    } catch (err) {
+      store.setSaveStatus('error', err.message);
+      setDraftError(err.message || 'Failed to save draft.');
+    } finally {
+      setIsSavingDraft(false);
+    }
+  };
 
   const handleFileSelect = async (e) => {
     const files = Array.from(e.target.files || []);
@@ -172,17 +216,49 @@ export const Step2Photos = ({ onNext, onPrev }) => {
         </div>
       </Card>
 
+      {/* Save Draft Feedback Alerts */}
+      {draftFeedback && (
+        <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center gap-2 text-xs text-emerald-800">
+          <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-600" />
+          <span>{draftFeedback}</span>
+        </div>
+      )}
+      {draftError && (
+        <div className="p-3 bg-red-50 border border-red-200 rounded-xl flex items-center gap-2 text-xs text-red-800">
+          <AlertCircle className="w-4 h-4 shrink-0 text-red-600" />
+          <span>{draftError}</span>
+        </div>
+      )}
+
       {/* Navigation Buttons */}
-      <div className="flex items-center justify-between pt-4">
-        <Button variant="outline" size="md" onClick={onPrev}>
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4">
+        <Button variant="outline" size="md" onClick={onPrev} className="w-full sm:w-auto">
           <ArrowLeft className="w-4 h-4 mr-2" />
           <span>Back to Details (Step 1)</span>
         </Button>
 
-        <Button variant="gold" size="lg" onClick={onNext}>
-          <span>Continue to Final Preview (Step 3)</span>
-          <ArrowRight className="w-5 h-5 ml-2" />
-        </Button>
+        <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
+          <Button
+            type="button"
+            variant="outline"
+            size="md"
+            onClick={handleSaveDraft}
+            disabled={isSavingDraft}
+            className="w-full sm:w-auto border-royal-gold-400 text-royal-maroon-800 hover:bg-royal-gold-50"
+          >
+            {isSavingDraft ? (
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+            ) : (
+              <Save className="w-4 h-4 mr-2 text-royal-gold-600" />
+            )}
+            <span>{isSavingDraft ? 'Saving Draft...' : 'Save Draft'}</span>
+          </Button>
+
+          <Button variant="gold" size="lg" onClick={onNext} className="w-full sm:w-auto">
+            <span>Continue to Final Preview (Step 3)</span>
+            <ArrowRight className="w-5 h-5 ml-2" />
+          </Button>
+        </div>
       </div>
     </div>
   );

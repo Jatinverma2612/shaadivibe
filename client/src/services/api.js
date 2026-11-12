@@ -1,16 +1,23 @@
-import { defaultThemes, sampleInvitation, defaultSiteContent } from '../../../shared/constants/mockData.js';
+import { defaultThemes, sampleInvitation, defaultSiteContent } from '../constants/mockData.js';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
 
 /**
- * Helper to get Auth token from localStorage (supports customer or admin)
+ * Token retrieval helpers
  */
+export const getAdminToken = () => {
+  return localStorage.getItem('shaadivibe_admin_token') || '';
+};
+
+export const getCustomerToken = () => {
+  return localStorage.getItem('shaadivibe_customer_token') || '';
+};
+
 export const getAuthToken = () => {
-  return (
-    localStorage.getItem('shaadivibe_customer_token') ||
-    localStorage.getItem('shaadivibe_admin_token') ||
-    ''
-  );
+  if (typeof window !== 'undefined' && window.location.pathname.startsWith('/admin')) {
+    return getAdminToken() || getCustomerToken();
+  }
+  return getCustomerToken() || getAdminToken();
 };
 
 /**
@@ -108,6 +115,84 @@ export const toggleThemePublish = async (id) => {
   if (!res.ok) {
     const err = await res.json();
     throw new Error(err.message || 'Failed to toggle publish');
+  }
+  return await res.json();
+};
+
+/**
+ * ==========================================================================
+ * DYNAMIC CATEGORY MANAGEMENT APIS
+ * ==========================================================================
+ */
+
+export const fetchCategories = async (params = {}) => {
+  const query = new URLSearchParams(params).toString();
+  const url = query ? `${API_BASE}/categories?${query}` : `${API_BASE}/categories`;
+  try {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error('Failed to fetch categories');
+    const data = await res.json();
+    return data.data || [];
+  } catch (err) {
+    console.warn('[API] Using fallback default categories:', err.message);
+    return [
+      { _id: 'cat-1', name: 'Royal', slug: 'royal', description: 'Regal palaces and gold foil motifs', themeCount: 0 },
+      { _id: 'cat-2', name: 'Traditional', slug: 'traditional', description: 'Time-honored Vedic rituals', themeCount: 0 },
+      { _id: 'cat-3', name: 'Floral', slug: 'floral', description: 'Romantic blossoms and botanical elegance', themeCount: 0 },
+      { _id: 'cat-4', name: 'Minimal', slug: 'minimal', description: 'Clean modern lines and typography', themeCount: 0 },
+      { _id: 'cat-5', name: 'Modern', slug: 'modern', description: 'Sleek luxury aesthetics', themeCount: 0 },
+      { _id: 'cat-6', name: 'Cartoon', slug: 'cartoon', description: 'Playful illustrated caricatures', themeCount: 0 },
+      { _id: 'cat-7', name: 'Destination', slug: 'destination', description: 'Palace lakes and coastal beaches', themeCount: 0 },
+      { _id: 'cat-8', name: 'Regional', slug: 'regional', description: 'Authentic regional ceremonies', themeCount: 0 },
+    ];
+  }
+};
+
+export const createCategory = async (categoryData) => {
+  const token = getAdminToken();
+  const res = await fetch(`${API_BASE}/categories`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(categoryData),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.message || 'Failed to create category');
+  }
+  return await res.json();
+};
+
+export const updateCategory = async (id, categoryData) => {
+  const token = getAdminToken();
+  const res = await fetch(`${API_BASE}/categories/${id}`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(categoryData),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.message || 'Failed to update category');
+  }
+  return await res.json();
+};
+
+export const deleteCategory = async (id) => {
+  const token = getAdminToken();
+  const res = await fetch(`${API_BASE}/categories/${id}`, {
+    method: 'DELETE',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.message || 'Failed to delete category');
   }
   return await res.json();
 };
@@ -479,3 +564,824 @@ export const fetchCurrentUser = async () => {
   const data = await res.json();
   return data.user;
 };
+
+/* ==========================================================================
+   THEME DELETE API
+   ========================================================================== */
+
+/**
+ * Delete a theme (Admin)
+ */
+export const deleteTheme = async (id) => {
+  const token = getAdminToken();
+  const res = await fetch(`${API_BASE}/themes/${id}`, {
+    method: 'DELETE',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.message || 'Failed to delete theme');
+  }
+  return await res.json();
+};
+
+/* ==========================================================================
+   CUSTOMER MANAGEMENT APIS (Phase D - Module A)
+   ========================================================================== */
+
+/**
+ * Fetch paginated customers with order & invitation stats (Admin)
+ */
+export const fetchCustomers = async (params = {}) => {
+  const token = getAdminToken();
+  const query = new URLSearchParams(params).toString();
+  const res = await fetch(`${API_BASE}/admin/customers${query ? `?${query}` : ''}`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+    credentials: 'include',
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.message || 'Failed to fetch customers');
+  }
+  return await res.json();
+};
+
+/**
+ * Fetch full profile and order history for a customer (Admin)
+ */
+export const fetchCustomerById = async (id) => {
+  const token = getAdminToken();
+  const res = await fetch(`${API_BASE}/admin/customers/${id}`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+    credentials: 'include',
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.message || 'Failed to fetch customer profile');
+  }
+  return await res.json();
+};
+
+/**
+ * Safely update customer profile fields (Admin)
+ */
+export const updateCustomer = async (id, data) => {
+  const token = getAdminToken();
+  const res = await fetch(`${API_BASE}/admin/customers/${id}`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    credentials: 'include',
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.message || 'Failed to update customer');
+  }
+  return await res.json();
+};
+
+/* ==========================================================================
+   RSVP MANAGEMENT APIS (Phase D - Module B)
+   ========================================================================== */
+
+/**
+ * Submit guest RSVP response (Public)
+ */
+export const submitRsvp = async (data) => {
+  const res = await fetch(`${API_BASE}/rsvp`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    credentials: 'include',
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.message || 'Failed to submit RSVP');
+  }
+  return await res.json();
+};
+
+/**
+ * Fetch RSVPs for a specific invitation (Owner or Admin)
+ */
+export const fetchInvitationRsvps = async (invitationId) => {
+  const token = getAuthToken();
+  const res = await fetch(`${API_BASE}/rsvp/invitation/${invitationId}`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+    credentials: 'include',
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.message || 'Failed to fetch invitation RSVPs');
+  }
+  return await res.json();
+};
+
+/**
+ * Fetch all platform RSVPs (Admin)
+ */
+export const fetchAdminRsvps = async (params = {}) => {
+  const token = getAdminToken();
+  const query = new URLSearchParams(params).toString();
+  const res = await fetch(`${API_BASE}/rsvp/admin/all${query ? `?${query}` : ''}`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+    credentials: 'include',
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.message || 'Failed to fetch RSVP overview');
+  }
+  return await res.json();
+};
+
+/* ==========================================================================
+   COUPONS & OFFERS APIS (Phase D - Module C)
+   ========================================================================== */
+
+/**
+ * Validate a coupon code against order amount (Public / Checkout)
+ */
+export const validateCouponCode = async (code, orderAmount) => {
+  const res = await fetch(`${API_BASE}/coupons/validate`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ code, orderAmount }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.message || 'Invalid coupon code');
+  }
+  return await res.json();
+};
+
+/**
+ * Fetch coupons with pagination, filters, and search (Admin)
+ */
+export const fetchCoupons = async (params = {}) => {
+  const token = getAdminToken();
+  const query = new URLSearchParams(params).toString();
+  const res = await fetch(`${API_BASE}/admin/coupons${query ? `?${query}` : ''}`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+    credentials: 'include',
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.message || 'Failed to fetch coupons');
+  }
+  return await res.json();
+};
+
+/**
+ * Create a new coupon (Admin)
+ */
+export const createCoupon = async (couponData) => {
+  const token = getAdminToken();
+  const res = await fetch(`${API_BASE}/admin/coupons`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    credentials: 'include',
+    body: JSON.stringify(couponData),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.message || 'Failed to create coupon');
+  }
+  return await res.json();
+};
+
+/**
+ * Update an existing coupon (Admin)
+ */
+export const updateCoupon = async (id, couponData) => {
+  const token = getAdminToken();
+  const res = await fetch(`${API_BASE}/admin/coupons/${id}`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    credentials: 'include',
+    body: JSON.stringify(couponData),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.message || 'Failed to update coupon');
+  }
+  return await res.json();
+};
+
+/**
+ * Toggle coupon active/inactive status (Admin)
+ */
+export const toggleCouponStatus = async (id) => {
+  const token = getAdminToken();
+  const res = await fetch(`${API_BASE}/admin/coupons/${id}/toggle`, {
+    method: 'PATCH',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+    credentials: 'include',
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.message || 'Failed to toggle coupon status');
+  }
+  return await res.json();
+};
+
+/**
+ * Delete a coupon (Admin)
+ */
+export const deleteCoupon = async (id) => {
+  const token = getAdminToken();
+  const res = await fetch(`${API_BASE}/admin/coupons/${id}`, {
+    method: 'DELETE',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+    credentials: 'include',
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.message || 'Failed to delete coupon');
+  }
+  return await res.json();
+};
+
+/* ==========================================================================
+   SUPPORT TICKETS APIS (Phase D - Module D)
+   ========================================================================== */
+
+/**
+ * Create a support ticket (Customer or Guest)
+ */
+export const createTicket = async (ticketData) => {
+  const token = getAuthToken();
+  const headers = { 'Content-Type': 'application/json' };
+  if (token) headers.Authorization = `Bearer ${token}`;
+
+  const res = await fetch(`${API_BASE}/tickets`, {
+    method: 'POST',
+    headers,
+    credentials: 'include',
+    body: JSON.stringify(ticketData),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.message || 'Failed to create support ticket');
+  }
+  return await res.json();
+};
+
+/**
+ * Fetch authenticated customer's own tickets
+ */
+export const fetchMyTickets = async () => {
+  const token = getAuthToken();
+  const res = await fetch(`${API_BASE}/tickets/my`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+    credentials: 'include',
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.message || 'Failed to fetch tickets');
+  }
+  return await res.json();
+};
+
+/**
+ * Fetch all platform tickets with filtering and search (Admin)
+ */
+export const fetchAdminTickets = async (params = {}) => {
+  const token = getAdminToken();
+  const query = new URLSearchParams(params).toString();
+  const res = await fetch(`${API_BASE}/admin/tickets${query ? `?${query}` : ''}`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+    credentials: 'include',
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.message || 'Failed to fetch support tickets');
+  }
+  return await res.json();
+};
+
+/**
+ * Update support ticket status, priority, or admin notes (Admin)
+ */
+export const updateTicket = async (id, updateData) => {
+  const token = getAdminToken();
+  const res = await fetch(`${API_BASE}/admin/tickets/${id}`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    credentials: 'include',
+    body: JSON.stringify(updateData),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.message || 'Failed to update support ticket');
+  }
+  return await res.json();
+};
+
+/* ==========================================================================
+   CART & WISHLIST APIS
+   ========================================================================== */
+
+export const fetchCart = async (guestIds = []) => {
+  const token = getAuthToken();
+  const headers = {};
+  if (token) headers.Authorization = `Bearer ${token}`;
+
+  let url = `${API_BASE}/cart`;
+  if (!token && guestIds && guestIds.length > 0) {
+    url += `?items=${encodeURIComponent(guestIds.join(','))}`;
+  }
+
+  const res = await fetch(url, { headers, credentials: 'include' });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.message || 'Failed to fetch cart');
+  }
+  const data = await res.json();
+  return data.data;
+};
+
+export const addCartItem = async (themeId) => {
+  const token = getAuthToken();
+  const res = await fetch(`${API_BASE}/cart/items`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    credentials: 'include',
+    body: JSON.stringify({ themeId }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.message || 'Failed to add item to cart');
+  }
+  const data = await res.json();
+  return data.data;
+};
+
+export const removeCartItem = async (themeId) => {
+  const token = getAuthToken();
+  const res = await fetch(`${API_BASE}/cart/items/${themeId}`, {
+    method: 'DELETE',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+    credentials: 'include',
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.message || 'Failed to remove item from cart');
+  }
+  const data = await res.json();
+  return data.data;
+};
+
+export const syncCartApi = async (themeIds) => {
+  const token = getAuthToken();
+  const res = await fetch(`${API_BASE}/cart/sync`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    credentials: 'include',
+    body: JSON.stringify({ themeIds }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.message || 'Failed to sync cart');
+  }
+  const data = await res.json();
+  return data.data;
+};
+
+export const clearCartApi = async () => {
+  const token = getAuthToken();
+  const res = await fetch(`${API_BASE}/cart`, {
+    method: 'DELETE',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+    credentials: 'include',
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.message || 'Failed to clear cart');
+  }
+  return await res.json();
+};
+
+export const fetchWishlist = async (guestIds = []) => {
+  const token = getAuthToken();
+  const headers = {};
+  if (token) headers.Authorization = `Bearer ${token}`;
+
+  let url = `${API_BASE}/wishlist`;
+  if (!token && guestIds && guestIds.length > 0) {
+    url += `?items=${encodeURIComponent(guestIds.join(','))}`;
+  }
+
+  const res = await fetch(url, { headers, credentials: 'include' });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.message || 'Failed to fetch wishlist');
+  }
+  const data = await res.json();
+  return data.data;
+};
+
+export const toggleWishlistApi = async (themeId) => {
+  const token = getAuthToken();
+  const res = await fetch(`${API_BASE}/wishlist/toggle`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    credentials: 'include',
+    body: JSON.stringify({ themeId }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.message || 'Failed to update wishlist');
+  }
+  const data = await res.json();
+  return data.data;
+};
+
+export const removeWishlistItem = async (themeId) => {
+  const token = getAuthToken();
+  const res = await fetch(`${API_BASE}/wishlist/items/${themeId}`, {
+    method: 'DELETE',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+    credentials: 'include',
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.message || 'Failed to remove from wishlist');
+  }
+  const data = await res.json();
+  return data.data;
+};
+
+export const syncWishlistApi = async (themeIds) => {
+  const token = getAuthToken();
+  const res = await fetch(`${API_BASE}/wishlist/sync`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    credentials: 'include',
+    body: JSON.stringify({ themeIds }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.message || 'Failed to sync wishlist');
+  }
+  const data = await res.json();
+  return data.data;
+};
+
+/* ==========================================================================
+   THEME ASSET UPLOAD API
+   ========================================================================== */
+
+/**
+ * Upload admin theme asset (cover image, video preview, or package template)
+ */
+export const uploadThemeAsset = async (file) => {
+  const token = getAdminToken();
+  const formData = new FormData();
+  formData.append('file', file);
+
+  const headers = {};
+  if (token) headers.Authorization = `Bearer ${token}`;
+
+  const res = await fetch(`${API_BASE}/upload/theme-asset`, {
+    method: 'POST',
+    headers,
+    credentials: 'include',
+    body: formData,
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.message || 'Theme asset upload failed');
+  }
+
+  const data = await res.json();
+  return {
+    url: data.url || data.urls?.[0] || '',
+    filename: data.filename || file.name,
+    size: data.size || file.size,
+  };
+};
+
+
+/* ==========================================================================
+   ORDER MANAGEMENT APIS (Phase C)
+   ========================================================================== */
+
+export const fetchOrders = async (params = {}) => {
+  const token = getAdminToken();
+  const query = new URLSearchParams(params).toString();
+  const res = await fetch(`${API_BASE}/orders${query ? `?${query}` : ''}`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+    credentials: 'include',
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.message || 'Failed to fetch orders');
+  }
+  return await res.json();
+};
+
+export const fetchOrderById = async (id) => {
+  const token = getAdminToken();
+  const res = await fetch(`${API_BASE}/orders/${id}`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+    credentials: 'include',
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.message || 'Failed to fetch order details');
+  }
+  return await res.json();
+};
+
+export const createOrder = async (orderData) => {
+  const token = getAdminToken();
+  const res = await fetch(`${API_BASE}/orders`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    credentials: 'include',
+    body: JSON.stringify(orderData),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.message || 'Failed to create order');
+  }
+  return await res.json();
+};
+
+export const updateOrder = async (id, orderData) => {
+  const token = getAdminToken();
+  const res = await fetch(`${API_BASE}/orders/${id}`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    credentials: 'include',
+    body: JSON.stringify(orderData),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.message || 'Failed to update order');
+  }
+  return await res.json();
+};
+
+export const updateOrderStatus = async (id, status, notes = '') => {
+  const token = getAdminToken();
+  const res = await fetch(`${API_BASE}/orders/${id}/status`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    credentials: 'include',
+    body: JSON.stringify({ status, notes }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.message || 'Failed to update order status');
+  }
+  return await res.json();
+};
+
+export const deleteOrder = async (id) => {
+  const token = getAdminToken();
+  const res = await fetch(`${API_BASE}/orders/${id}`, {
+    method: 'DELETE',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+    credentials: 'include',
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.message || 'Failed to delete order');
+  }
+  return await res.json();
+};
+
+export const fetchCustomersLookup = async () => {
+  const token = getAdminToken();
+  const res = await fetch(`${API_BASE}/orders/customers/lookup`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+    credentials: 'include',
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.message || 'Failed to fetch customer lookup');
+  }
+  const data = await res.json();
+  return data.data || [];
+};
+
+
+/* ==========================================================================
+   ADMIN DASHBOARD & PROFILE APIS
+   ========================================================================== */
+
+export const fetchAdminDashboardStats = async () => {
+  const token = getAdminToken();
+  const res = await fetch(`${API_BASE}/admin/dashboard`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+    credentials: 'include',
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.message || 'Failed to fetch admin dashboard stats');
+  }
+  const data = await res.json();
+  return data.data;
+};
+
+export const fetchAdminProfile = async () => {
+  const token = getAdminToken();
+  const res = await fetch(`${API_BASE}/auth/me`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+    credentials: 'include',
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.message || 'Failed to fetch admin profile');
+  }
+  const data = await res.json();
+  return data.user;
+};
+
+/**
+ * Fetch advanced admin analytics with dynamic time range
+ * GET /api/admin/analytics?range=...
+ */
+export const fetchAdminAnalytics = async (params = {}) => {
+  const token = getAdminToken();
+  const query = new URLSearchParams(params).toString();
+  const res = await fetch(`${API_BASE}/admin/analytics${query ? `?${query}` : ''}`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+    credentials: 'include',
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.message || 'Failed to fetch admin analytics');
+  }
+  const data = await res.json();
+  return data.data;
+};
+
+/* ==========================================================================
+   PAYMENT & FINANCIAL MANAGEMENT APIS (Phase 5 / Admin)
+   ========================================================================== */
+
+export const fetchAdminPayments = async (params = {}) => {
+  const token = getAdminToken();
+  const query = new URLSearchParams(params).toString();
+  const res = await fetch(`${API_BASE}/admin/payments${query ? `?${query}` : ''}`, {
+    headers: { Authorization: `Bearer ${token}` },
+    credentials: 'include',
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.message || 'Failed to fetch payments');
+  }
+  return await res.json();
+};
+
+export const recordManualPayment = async (data) => {
+  const token = getAdminToken();
+  const res = await fetch(`${API_BASE}/admin/payments/manual`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    credentials: 'include',
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.message || 'Failed to record manual payment');
+  }
+  return await res.json();
+};
+
+export const refundPayment = async (id, data = {}) => {
+  const token = getAdminToken();
+  const res = await fetch(`${API_BASE}/admin/payments/${id}/refund`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    credentials: 'include',
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.message || 'Failed to process refund');
+  }
+  return await res.json();
+};
+
+export const fetchPaymentConfig = async () => {
+  const token = getAdminToken();
+  const res = await fetch(`${API_BASE}/admin/payments/config`, {
+    headers: { Authorization: `Bearer ${token}` },
+    credentials: 'include',
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.message || 'Failed to fetch payment config');
+  }
+  return await res.json();
+};
+
+export const updatePaymentConfig = async (data) => {
+  const token = getAdminToken();
+  const res = await fetch(`${API_BASE}/admin/payments/config`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    credentials: 'include',
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.message || 'Failed to update payment config');
+  }
+  return await res.json();
+};
+
+
+/**
+ * ==========================================================================
+ * DYNAMIC CATEGORY MANAGEMENT APIS
+ * ==========================================================================
+ */

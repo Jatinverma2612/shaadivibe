@@ -1,6 +1,6 @@
 /**
- * Shared Mock and Seed Data for ShaadiVibe
- * Shared contract between client fallback state and server database seeders.
+ * Frontend Mock and Fallback Data for ShaadiVibe
+ * Provides fallback themes, sample invitation, and marketing content.
  */
 
 export const defaultThemes = [

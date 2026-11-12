@@ -7,9 +7,10 @@ import { CountdownTimer } from './CountdownTimer.jsx';
 import { InteractiveCards } from './InteractiveCards.jsx';
 import { YouAreInvitedCard } from './YouAreInvitedCard.jsx';
 import { EventTimeline } from './EventTimeline.jsx';
+import { RsvpForm } from './RsvpForm.jsx';
 import { Button } from '../../components/common/Button.jsx';
 import { Share2, Check, ArrowLeft, Sparkles, Loader2, Heart } from 'lucide-react';
-import { sampleInvitation } from '../../../../shared/constants/mockData.js';
+import { sampleInvitation } from '../../constants/mockData.js';
 
 export const InvitationRenderer = ({ customInvitation = null }) => {
   const { slug } = useParams();
@@ -155,6 +156,11 @@ export const InvitationRenderer = ({ customInvitation = null }) => {
       {/* 5. Wedding Ceremony Timeline */}
       <section>
         <EventTimeline events={invitation.events} />
+      </section>
+
+      {/* 6. Guest RSVP Section */}
+      <section>
+        <RsvpForm invitation={invitation} />
       </section>
 
       {/* Floating Bottom Action Badge for Visitors */}

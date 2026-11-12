@@ -5,18 +5,21 @@ export const Card = ({
   children,
   className = '',
   ornate = true,
-  variant = 'paper', // 'paper' | 'maroon' | 'flat'
+  variant = 'paper', // 'paper' | 'blush' | 'maroon' | 'flat'
   ...props
 }) => {
   const variantStyles = {
-    paper: 'bg-royal-ivory-card text-royal-brown-800 border border-royal-gold-500/30 shadow-royal',
-    maroon: 'bg-royal-maroon-900 text-royal-ivory-DEFAULT border border-royal-gold-500/40 shadow-royal-lg',
-    flat: 'bg-royal-ivory-warm text-royal-brown-800 border border-royal-ivory-border',
-  }[variant] || 'bg-royal-ivory-card text-royal-brown-800';
+    paper: 'bg-white text-floral-brown border border-floral-gold/30 shadow-sm',
+    blush: 'bg-floral-blush/70 text-floral-brown border border-royal-rose/30 shadow-sm',
+    maroon: 'bg-gradient-to-br from-royal-maroon-900 to-royal-maroon-950 text-[#FFF9F4] border border-floral-gold/50 shadow-royal-lg',
+    flat: 'bg-floral-ivory text-floral-brown border border-floral-gold/20',
+  }[variant] || 'bg-white text-floral-brown border border-floral-gold/30';
+
+  const cornerColor = variant === 'maroon' ? 'text-[#FDF3DA] opacity-80' : 'text-floral-gold/70';
 
   return (
     <div
-      className={`relative rounded-xl p-6 transition-all duration-300 ${variantStyles} ${
+      className={`relative rounded-2xl p-6 transition-all duration-300 ${variantStyles} ${
         ornate ? 'ornate-border' : ''
       } ${className}`}
       {...props}
@@ -24,16 +27,16 @@ export const Card = ({
       {ornate && (
         <>
           <div className="absolute top-2 left-2 z-10 pointer-events-none">
-            <OrnateCorner position="top-left" className="w-5 h-5 text-royal-gold-500/80" />
+            <OrnateCorner position="top-left" className={`w-5 h-5 ${cornerColor}`} />
           </div>
           <div className="absolute top-2 right-2 z-10 pointer-events-none">
-            <OrnateCorner position="top-right" className="w-5 h-5 text-royal-gold-500/80" />
+            <OrnateCorner position="top-right" className={`w-5 h-5 ${cornerColor}`} />
           </div>
           <div className="absolute bottom-2 left-2 z-10 pointer-events-none">
-            <OrnateCorner position="bottom-left" className="w-5 h-5 text-royal-gold-500/80" />
+            <OrnateCorner position="bottom-left" className={`w-5 h-5 ${cornerColor}`} />
           </div>
           <div className="absolute bottom-2 right-2 z-10 pointer-events-none">
-            <OrnateCorner position="bottom-right" className="w-5 h-5 text-royal-gold-500/80" />
+            <OrnateCorner position="bottom-right" className={`w-5 h-5 ${cornerColor}`} />
           </div>
         </>
       )}

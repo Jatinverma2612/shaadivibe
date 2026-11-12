@@ -1,10 +1,14 @@
-import React, { useState, useEffect } from 'react';
-import { fetchThemes, createTheme, updateTheme, toggleThemePublish } from '../../services/api.js';
-import { Card } from '../../components/common/Card.jsx';
-import { Button } from '../../components/common/Button.jsx';
-import { Input, Textarea } from '../../components/common/Input.jsx';
-import { Modal } from '../../components/common/Modal.jsx';
-import { Badge } from '../../components/common/Badge.jsx';
+import React, { useState, useEffect, useMemo } from 'react';
+import {
+  fetchThemes,
+  toggleThemePublish,
+  deleteTheme,
+  fetchCategories,
+  createCategory,
+  updateCategory,
+  deleteCategory,
+} from '../../services/api.js';
+import { ThemeBuilderWizard } from './ThemeBuilderWizard.jsx';
 import {
   Plus,
   Edit2,
@@ -14,39 +18,75 @@ import {
   Loader2,
   RefreshCw,
   Sparkles,
+  ExternalLink,
+  Layers,
+  IndianRupee,
+  Search,
+  Filter,
+  Play,
+  MoreVertical,
+  Trash2,
+  ChevronDown,
+  X,
+  AlertCircle,
+  Check,
+  Tag,
 } from 'lucide-react';
 
-export const ThemeManager = () => {
+export const ThemeManager = ({ onThemesUpdate, initialTab = 'all' }) => {
   const [themes, setThemes] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
 
-  // Modal states
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  // Mode: 'list' or 'wizard'
+  const [viewMode, setViewMode] = useState('list');
   const [editingTheme, setEditingTheme] = useState(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [modalError, setModalError] = useState('');
 
-  // Form states
-  const [formData, setFormData] = useState({
-    name: '',
-    slug: '',
-    category: 'Royal',
-    description: '',
-    coverImage: '',
-    priceDisplay: 2499,
-    supportedFormats: ['Interactive Website'],
-    features: '3D Envelope Unwrapping, Multi-day Itinerary, Live Countdown',
-  });
+  // Tabs: 'all' | 'video' | 'website'
+  const [activeTab, setActiveTab] = useState(initialTab);
+
+  useEffect(() => {
+    if (initialTab) {
+      setActiveTab(initialTab);
+    }
+  }, [initialTab]);
+
+  // Filter toolbar state
+  const [searchQuery, setSearchQuery] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState('All');
+  const [statusFilter, setStatusFilter] = useState('All');
+  const [sortBy, setSortBy] = useState('latest');
+
+  // Dropdown menu state
+  const [activeMenuThemeId, setActiveMenuThemeId] = useState(null);
+
+  // Quick Preview Modal state
+  const [previewTheme, setPreviewTheme] = useState(null);
+
+  // Success alert
+  const [toastMessage, setToastMessage] = useState('');
+
+  // Dynamic Categories state for filtering
+  const [categories, setCategories] = useState([]);
+
+  const loadAllCategories = async () => {
+    try {
+      const data = await fetchCategories();
+      setCategories(data || []);
+    } catch (err) {
+      console.warn('Failed to fetch categories for filtering:', err.message);
+    }
+  };
 
   const loadAllThemes = async () => {
     try {
       setIsLoading(true);
       setError('');
       const data = await fetchThemes({ all: 'true' });
-      setThemes(data);
+      setThemes(data || []);
+      if (onThemesUpdate) onThemesUpdate();
     } catch (err) {
-      setError(err.message || 'Failed to fetch themes');
+      setError(err.message || 'Failed to fetch themes from registry.');
     } finally {
       setIsLoading(false);
     }
@@ -54,295 +94,564 @@ export const ThemeManager = () => {
 
   useEffect(() => {
     loadAllThemes();
+    loadAllCategories();
   }, []);
 
-  const openCreateModal = () => {
-    setEditingTheme(null);
-    setFormData({
-      name: '',
-      slug: '',
-      category: 'Royal',
-      description: '',
-      coverImage: 'https://images.unsplash.com/photo-1583939003579-730e3918a45a?auto=format&fit=crop&w=1200&q=80',
-      priceDisplay: 2499,
-      supportedFormats: ['Interactive Website'],
-      features: '3D Envelope Unwrapping, Multi-day Ceremony Itinerary, Auspicious Countdown',
-    });
-    setModalError('');
-    setIsModalOpen(true);
+  const showToast = (msg) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(''), 3500);
   };
 
-  const openEditModal = (theme) => {
-    setEditingTheme(theme);
-    setFormData({
-      name: theme.name,
-      slug: theme.slug,
-      category: theme.category,
-      description: theme.description,
-      coverImage: theme.coverImage,
-      priceDisplay: theme.priceDisplay || 0,
-      supportedFormats: theme.supportedFormats || ['Interactive Website'],
-      features: Array.isArray(theme.features) ? theme.features.join(', ') : '',
-    });
-    setModalError('');
-    setIsModalOpen(true);
-  };
-
-  const handleTogglePublish = async (id) => {
+  const handleTogglePublish = async (theme) => {
+    const id = theme._id || theme.id;
     try {
       await toggleThemePublish(id);
+      showToast(`Theme "${theme.name}" ${theme.isPublished ? 'unpublished' : 'published'} successfully.`);
       loadAllThemes();
+      setActiveMenuThemeId(null);
     } catch (err) {
-      alert(`Could not toggle publication: ${err.message}`);
+      alert(`Could not toggle status: ${err.message}`);
+      
     }
   };
 
-  const handleSaveTheme = async (e) => {
-    e.preventDefault();
-    if (!formData.name.trim() || !formData.coverImage.trim()) {
-      setModalError('Theme Name and Cover Image are required.');
+  const handleDeleteTheme = async (theme) => {
+    const id = theme._id || theme.id;
+    if (!window.confirm(`Are you sure you want to permanently delete "${theme.name}"?`)) {
       return;
     }
 
-    setIsSubmitting(true);
-    setModalError('');
-
-    const payload = {
-      ...formData,
-      features: formData.features.split(',').map((f) => f.trim()).filter(Boolean),
-      priceDisplay: Number(formData.priceDisplay) || 0,
-    };
-
     try {
-      if (editingTheme) {
-        await updateTheme(editingTheme._id || editingTheme.id, payload);
+      const res = await deleteTheme(id);
+      if (res?.archived) {
+        showToast(`Theme "${theme.name}" is referenced by existing invitations and was safely archived.`);
       } else {
-        await createTheme(payload);
+        showToast(`Theme "${theme.name}" removed from registry.`);
       }
-      setIsModalOpen(false);
       loadAllThemes();
+      setActiveMenuThemeId(null);
     } catch (err) {
-      setModalError(err.message || 'Failed to save theme.');
-    } finally {
-      setIsSubmitting(false);
+      alert(`Failed to delete theme: ${err.message}`);
     }
   };
 
+  const handleOpenWizard = (themeToEdit = null) => {
+    setEditingTheme(themeToEdit);
+    setViewMode('wizard');
+    setActiveMenuThemeId(null);
+  };
+
+  const handleWizardComplete = () => {
+    setViewMode('list');
+    setEditingTheme(null);
+    showToast('Theme saved successfully!');
+    loadAllThemes();
+  };
+
+  // Tab counts calculated from live Mongo Atlas data
+  const allCount = themes.length;
+  const videoCount = themes.filter((t) =>
+    t.themeType === 'video' ||
+    t.themeType === 'both' ||
+    t.supportedFormats?.includes('Video Invitation')
+  ).length;
+  const websiteCount = themes.filter((t) =>
+    t.themeType === 'website' ||
+    t.themeType === 'both' ||
+    t.supportedFormats?.includes('Interactive Website')
+  ).length;
+
+  // Filtered & Sorted Themes
+  const filteredThemes = useMemo(() => {
+    return themes
+      .filter((t) => {
+        // Tab Filter
+        if (activeTab === 'video') {
+          const isVideo =
+            t.themeType === 'video' ||
+            t.themeType === 'both' ||
+            t.supportedFormats?.includes('Video Invitation');
+          if (!isVideo) return false;
+        } else if (activeTab === 'website') {
+          const isWeb =
+            t.themeType === 'website' ||
+            t.themeType === 'both' ||
+            t.supportedFormats?.includes('Interactive Website');
+          if (!isWeb) return false;
+        }
+
+        // Category Filter
+        if (categoryFilter !== 'All' && t.category !== categoryFilter) {
+          return false;
+        }
+
+        // Status Filter
+        if (statusFilter === 'active' && (!t.isPublished || t.status === 'archived' || t.isArchived)) return false;
+        if (statusFilter === 'draft' && (t.isPublished || t.status === 'archived' || t.isArchived)) return false;
+        if (statusFilter === 'archived' && t.status !== 'archived' && !t.isArchived) return false;
+
+        // Search Query
+        if (searchQuery.trim()) {
+          const q = searchQuery.toLowerCase().trim();
+          const matchName = t.name?.toLowerCase().includes(q);
+          const matchSlug = t.slug?.toLowerCase().includes(q);
+          const matchDesc = t.description?.toLowerCase().includes(q);
+          const matchTags = t.tags?.some((tag) => tag.toLowerCase().includes(q));
+          if (!matchName && !matchSlug && !matchDesc && !matchTags) return false;
+        }
+
+        return true;
+      })
+      .sort((a, b) => {
+        if (sortBy === 'price-asc') return (a.priceDisplay || 0) - (b.priceDisplay || 0);
+        if (sortBy === 'price-desc') return (b.priceDisplay || 0) - (a.priceDisplay || 0);
+        if (sortBy === 'name') return (a.name || '').localeCompare(b.name || '');
+        // default 'latest'
+        return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
+      });
+  }, [themes, activeTab, categoryFilter, statusFilter, searchQuery, sortBy]);
+
+  // If in Wizard Mode, render the 5-step ThemeBuilderWizard
+  if (viewMode === 'wizard') {
+    return (
+      <ThemeBuilderWizard
+        initialTheme={editingTheme}
+        onComplete={handleWizardComplete}
+        onCancel={() => {
+          setViewMode('list');
+          setEditingTheme(null);
+        }}
+      />
+    );
+  }
+
+  // Helper for Theme Type display
+  const getThemeTypeDisplay = (theme) => {
+    if (theme.themeType === 'both') return 'Video + Website';
+    if (theme.themeType === 'video') return 'Video Only';
+    if (theme.themeType === 'website') return 'Website Only';
+    if (
+      theme.supportedFormats?.includes('Video Invitation') &&
+      theme.supportedFormats?.includes('Interactive Website')
+    ) {
+      return 'Video + Website';
+    }
+    if (theme.supportedFormats?.includes('Video Invitation')) return 'Video Only';
+    return 'Website Only';
+  };
+
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div>
-          <h2 className="font-serif text-2xl font-bold text-royal-maroon-800">
-            Theme Management Registry
-          </h2>
-          <p className="text-xs text-royal-brown-600 mt-0.5">
-            Create, configure, publish, or modify royal wedding themes displayed on the public gallery.
-          </p>
-        </div>
-
-        <Button variant="gold" size="sm" onClick={openCreateModal}>
-          <Plus className="w-4 h-4 mr-1.5" />
-          Create New Theme
-        </Button>
-      </div>
-
-      {isLoading ? (
-        <div className="p-12 text-center">
-          <Loader2 className="w-8 h-8 text-royal-gold-600 animate-spin mx-auto mb-2" />
-          <p className="text-xs text-royal-brown-600">Loading themes...</p>
-        </div>
-      ) : error ? (
-        <div className="p-4 bg-red-50 border border-red-200 text-red-700 rounded-xl text-xs flex items-center justify-between">
-          <span>{error}</span>
-          <Button variant="outline" size="sm" onClick={loadAllThemes}>
-            Retry
-          </Button>
-        </div>
-      ) : (
-        <div className="bg-royal-ivory-card border border-royal-gold-400/40 rounded-2xl overflow-hidden shadow-sm">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs text-royal-brown-800">
-              <thead className="bg-royal-ivory-warm border-b border-royal-gold-300 text-royal-brown-900 font-bold uppercase tracking-wider text-[11px]">
-                <tr>
-                  <th className="py-3 px-4">Cover</th>
-                  <th className="py-3 px-4">Theme Name & Slug</th>
-                  <th className="py-3 px-4">Category</th>
-                  <th className="py-3 px-4">Supported Formats</th>
-                  <th className="py-3 px-4">Price</th>
-                  <th className="py-3 px-4">Status</th>
-                  <th className="py-3 px-4 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-royal-gold-300/30">
-                {themes.map((t) => (
-                  <tr key={t.slug || t._id || t.id} className="hover:bg-royal-gold-50/50 transition-colors">
-                    <td className="py-3 px-4">
-                      <div className="w-14 h-10 rounded-lg overflow-hidden bg-royal-ivory-warm border border-royal-gold-300">
-                        <img src={t.coverImage} alt={t.name} className="w-full h-full object-cover" />
-                      </div>
-                    </td>
-                    <td className="py-3 px-4">
-                      <strong className="font-serif text-sm font-bold text-royal-maroon-800 block">
-                        {t.name}
-                      </strong>
-                      <span className="text-[10px] text-royal-brown-500 font-mono">
-                        /themes/{t.slug}
-                      </span>
-                    </td>
-                    <td className="py-3 px-4">
-                      <Badge variant="gold" size="sm">
-                        {t.category}
-                      </Badge>
-                    </td>
-                    <td className="py-3 px-4">
-                      <div className="flex flex-wrap gap-1">
-                        {t.supportedFormats?.map((fmt, i) => (
-                          <span
-                            key={i}
-                            className="text-[10px] bg-royal-gold-100 text-royal-gold-900 px-1.5 py-0.5 rounded font-medium"
-                          >
-                            {fmt}
-                          </span>
-                        ))}
-                      </div>
-                    </td>
-                    <td className="py-3 px-4 font-bold text-royal-maroon-800">
-                      ₹{t.priceDisplay}
-                    </td>
-                    <td className="py-3 px-4">
-                      {t.isPublished ? (
-                        <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
-                          <CheckCircle className="w-3 h-3" />
-                          Published
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
-                          <XCircle className="w-3 h-3" />
-                          Draft
-                        </span>
-                      )}
-                    </td>
-                    <td className="py-3 px-4 text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleTogglePublish(t._id || t.id)}
-                          title={t.isPublished ? 'Unpublish Theme' : 'Publish Theme'}
-                          className="text-[11px]"
-                        >
-                          {t.isPublished ? 'Unpublish' : 'Publish'}
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => openEditModal(t)}
-                          className="text-[11px]"
-                        >
-                          <Edit2 className="w-3 h-3 mr-1" />
-                          Edit
-                        </Button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+    <div className="space-y-6 text-left max-w-7xl mx-auto">
+      {/* Toast Notification */}
+      {toastMessage && (
+        <div className="fixed top-20 right-6 z-50 p-4 rounded-2xl bg-[#1E040D] text-white text-xs font-semibold shadow-xl border border-rose-900/40 flex items-center gap-3 animate-fade-in">
+          <CheckCircle className="w-4 h-4 text-emerald-400 shrink-0" />
+          <span>{toastMessage}</span>
         </div>
       )}
 
-      {/* Theme Create / Edit Modal */}
-      <Modal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        title={editingTheme ? 'Edit Royal Theme' : 'Create New Royal Theme'}
-        subtitle="Theme Registry & Customization Options"
-        maxWidth="max-w-2xl"
-      >
-        <form onSubmit={handleSaveTheme} className="space-y-4 text-left">
-          {modalError && (
-            <div className="p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-xs">
-              {modalError}
-            </div>
+      {/* Header Row (Exact match to reference screenshot) */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-1">
+        <div>
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900 tracking-tight">
+            Theme Management
+          </h1>
+          <p className="text-xs sm:text-sm text-gray-500 mt-0.5">
+            Manage your wedding invitation themes (video & website).
+          </p>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => handleOpenWizard(null)}
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#8B1D3B] text-white text-xs font-bold hover:bg-[#6E142C] transition-colors shadow-sm self-start sm:self-auto"
+        >
+          <Plus className="w-4 h-4" />
+          <span>Add New Theme</span>
+        </button>
+      </div>
+
+      {/* Top Format Tabs (All Themes / Video Themes / Website Themes) */}
+      <div className="flex items-center gap-2 border-b border-gray-200">
+        {[
+          { id: 'all', label: `All Themes (${allCount})` },
+          { id: 'video', label: `Video Themes (${videoCount})` },
+          { id: 'website', label: `Website Themes (${websiteCount})` },
+        ].map((tab) => {
+          const isActive = activeTab === tab.id;
+          return (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => setActiveTab(tab.id)}
+              className={`pb-3 px-3 text-xs font-bold border-b-2 transition-colors ${
+                isActive
+                  ? 'border-[#8B1D3B] text-[#8B1D3B]'
+                  : 'border-transparent text-gray-500 hover:text-gray-900'
+              }`}
+            >
+              {tab.label}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Filter and Search Bar Row (Exact match to screenshot) */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        {/* Left Filters */}
+        <div className="flex flex-wrap items-center gap-2.5">
+          {/* Categories Dropdown */}
+          <div className="relative">
+            <select
+              value={categoryFilter}
+              onChange={(e) => setCategoryFilter(e.target.value)}
+              className="appearance-none pl-3 pr-8 py-1.5 rounded-xl text-xs font-medium bg-white border border-gray-200 text-gray-700 hover:border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#8B1D3B]/20 shadow-2xs cursor-pointer"
+            >
+              <option value="All">All Categories</option>
+              {categories.map((c) => (
+                <option key={c._id || c.name} value={c.name}>
+                  {c.name} {c.themeCount ? `(${c.themeCount})` : ''}
+                </option>
+              ))}
+            </select>
+            <ChevronDown className="w-3.5 h-3.5 text-gray-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+          </div>
+
+          {/* Status Dropdown */}
+          <div className="relative">
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="appearance-none pl-3 pr-8 py-1.5 rounded-xl text-xs font-medium bg-white border border-gray-200 text-gray-700 hover:border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#8B1D3B]/20 shadow-2xs cursor-pointer"
+            >
+              <option value="All">All Status</option>
+              <option value="active">Active (Published)</option>
+              <option value="draft">Inactive (Draft)</option>
+              <option value="archived">Archived</option>
+            </select>
+            <ChevronDown className="w-3.5 h-3.5 text-gray-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+          </div>
+
+          {/* Sort Dropdown */}
+          <div className="relative">
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+              className="appearance-none pl-3 pr-8 py-1.5 rounded-xl text-xs font-medium bg-white border border-gray-200 text-gray-700 hover:border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#8B1D3B]/20 shadow-2xs cursor-pointer"
+            >
+              <option value="latest">Sort By: Latest</option>
+              <option value="price-asc">Price: Low to High</option>
+              <option value="price-desc">Price: High to Low</option>
+              <option value="name">Name: A-Z</option>
+            </select>
+            <ChevronDown className="w-3.5 h-3.5 text-gray-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+          </div>
+        </div>
+
+        {/* Right Search Input */}
+        <div className="relative w-full sm:w-64">
+          <Search className="w-3.5 h-3.5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search themes..."
+            className="w-full pl-8 pr-3 py-1.5 rounded-xl text-xs bg-white border border-gray-200 text-gray-800 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#8B1D3B]/20 shadow-2xs"
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery('')}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+            >
+              <X className="w-3 h-3" />
+            </button>
           )}
+        </div>
+      </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <Input
-              label="Theme Name"
-              value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              required
-              placeholder="e.g. Royal Udaipur Palace"
-            />
-            <Input
-              label="Slug (Optional, auto-generated)"
-              value={formData.slug}
-              onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
-              placeholder="e.g. royal-udaipur-palace"
-            />
+      {/* Main Content Area */}
+      {isLoading ? (
+        <div className="p-16 text-center bg-white border border-gray-200 rounded-2xl shadow-2xs">
+          <Loader2 className="w-8 h-8 text-[#8B1D3B] animate-spin mx-auto mb-2" />
+          <p className="text-xs text-gray-500 font-medium">Loading wedding theme collection...</p>
+        </div>
+      ) : error ? (
+        <div className="p-4 bg-rose-50 border border-rose-200 text-rose-800 rounded-2xl text-xs flex items-center justify-between shadow-2xs">
+          <span>{error}</span>
+          <button
+            onClick={loadAllThemes}
+            className="px-3 py-1 rounded-lg bg-rose-100 hover:bg-rose-200 text-rose-900 font-semibold text-xs"
+          >
+            Retry
+          </button>
+        </div>
+      ) : filteredThemes.length === 0 ? (
+        <div className="p-12 text-center bg-white border border-gray-200 rounded-2xl shadow-2xs space-y-3">
+          <div className="w-12 h-12 rounded-xl bg-gray-100 text-gray-400 flex items-center justify-center mx-auto">
+            <Layers className="w-6 h-6" />
           </div>
+          <h3 className="text-sm font-bold text-gray-900">No themes found matching your criteria</h3>
+          <p className="text-xs text-gray-500 max-w-sm mx-auto">
+            Try adjusting your category, status filter, or search keywords, or add a new theme.
+          </p>
+          <button
+            type="button"
+            onClick={() => handleOpenWizard(null)}
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#8B1D3B] text-white text-xs font-bold hover:bg-[#6E142C] transition-colors"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Create New Theme</span>
+          </button>
+        </div>
+      ) : (
+        /* Theme Card Grid (3 Columns on Desktop - Exact match to screenshot) */
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6">
+          {filteredThemes.map((theme) => {
+            const id = theme._id || theme.id;
+            const hasVideo =
+              theme.themeType === 'video' ||
+              theme.themeType === 'both' ||
+              theme.videoUrl ||
+              theme.supportedFormats?.includes('Video Invitation');
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-royal-brown-700 mb-1.5">
-                Category
-              </label>
-              <select
-                value={formData.category}
-                onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                className="w-full px-4 py-2.5 rounded-lg bg-royal-ivory-card border border-royal-gold-500/40 text-royal-brown-900 text-sm focus:outline-none focus:border-royal-gold-600"
+            const isMenuOpen = activeMenuThemeId === id;
+
+            return (
+              <div
+                key={id}
+                className="bg-white rounded-2xl border border-gray-200/80 shadow-2xs overflow-hidden flex flex-col justify-between hover:shadow-md transition-shadow group"
               >
-                {['Royal', 'Traditional', 'Floral', 'Minimal', 'Modern', 'Destination', 'Regional'].map((cat) => (
-                  <option key={cat} value={cat}>
-                    {cat}
-                  </option>
-                ))}
-              </select>
+                {/* Media Thumbnail Container */}
+                <div className="relative aspect-[16/10] bg-gray-100 overflow-hidden">
+                  <img
+                    src={theme.coverImage}
+                    alt={theme.name}
+                    className="w-full h-full object-cover group-hover:scale-102 transition-transform duration-300"
+                  />
+
+                  {/* Video Duration Badge (e.g. ▶ 00:30) */}
+                  {hasVideo && (
+                    <div className="absolute bottom-2.5 left-2.5 px-2 py-0.5 rounded-md bg-black/70 backdrop-blur-xs text-white text-[10px] font-bold flex items-center gap-1 shadow-xs">
+                      <Play className="w-2.5 h-2.5 fill-white text-white" />
+                      <span>{theme.videoDuration || '00:30'}</span>
+                    </div>
+                  )}
+
+                  {/* Top-Right 3-Dots Menu Button */}
+                  <div className="absolute top-2.5 right-2.5">
+                    <button
+                      type="button"
+                      onClick={() => setActiveMenuThemeId(isMenuOpen ? null : id)}
+                      className="w-7 h-7 rounded-full bg-black/60 backdrop-blur-xs text-white hover:bg-black/80 flex items-center justify-center transition-colors shadow-xs"
+                      aria-label="Theme options"
+                    >
+                      <MoreVertical className="w-3.5 h-3.5" />
+                    </button>
+
+                    {/* Dropdown Menu Popup */}
+                    {isMenuOpen && (
+                      <div className="absolute right-0 top-8 w-40 bg-white rounded-xl shadow-lg border border-gray-100 py-1.5 z-20 text-xs">
+                        <button
+                          type="button"
+                          onClick={() => handleTogglePublish(theme)}
+                          className="w-full px-3 py-1.5 text-left text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                        >
+                          {theme.isPublished ? (
+                            <>
+                              <XCircle className="w-3.5 h-3.5 text-amber-500" />
+                              <span>Deactivate</span>
+                            </>
+                          ) : (
+                            <>
+                              <CheckCircle className="w-3.5 h-3.5 text-emerald-500" />
+                              <span>Activate</span>
+                            </>
+                          )}
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => handleOpenWizard(theme)}
+                          className="w-full px-3 py-1.5 text-left text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                        >
+                          <Edit2 className="w-3.5 h-3.5 text-blue-500" />
+                          <span>Edit Details</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteTheme(theme)}
+                          className="w-full px-3 py-1.5 text-left text-rose-600 hover:bg-rose-50 flex items-center gap-2"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                          <span>Delete Theme</span>
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Card Body */}
+                <div className="p-4 space-y-3 flex-1 flex flex-col justify-between">
+                  <div>
+                    <h3 className="font-serif text-base font-bold text-gray-900 group-hover:text-[#8B1D3B] transition-colors leading-snug">
+                      {theme.name}
+                    </h3>
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      {getThemeTypeDisplay(theme)}
+                    </p>
+                  </div>
+
+                  {/* Price & Status Row */}
+                  <div className="flex items-center justify-between pt-1">
+                    <div className="flex items-center gap-1.5">
+                      <span className="font-bold text-gray-900 text-sm">
+                        ₹{theme.priceDisplay}
+                      </span>
+                      {theme.offerPrice > 0 && theme.offerPrice < theme.priceDisplay && (
+                        <span className="text-[11px] text-gray-400 line-through">
+                          ₹{theme.priceDisplay}
+                        </span>
+                      )}
+                    </div>
+
+                    <div>
+                      {theme.status === 'archived' || theme.isArchived ? (
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-gray-100 text-gray-700 border border-gray-300">
+                          Archived
+                        </span>
+                      ) : theme.isPublished ? (
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                          Active
+                        </span>
+                      ) : (
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                          Draft
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Action Buttons: Edit & Preview (Exact match to screenshot) */}
+                  <div className="grid grid-cols-2 gap-2 pt-2 border-t border-gray-100">
+                    <button
+                      type="button"
+                      onClick={() => handleOpenWizard(theme)}
+                      className="w-full py-1.5 px-3 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 text-xs font-semibold transition-colors flex items-center justify-center gap-1.5 shadow-2xs"
+                    >
+                      <Edit2 className="w-3 h-3 text-gray-500" />
+                      <span>Edit</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setPreviewTheme(theme)}
+                      className="w-full py-1.5 px-3 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 text-xs font-semibold transition-colors flex items-center justify-center gap-1.5 shadow-2xs"
+                    >
+                      <Eye className="w-3 h-3 text-gray-500" />
+                      <span>Preview</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Quick Interactive Preview Modal */}
+      {previewTheme && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs" role="dialog">
+          <div className="relative w-full max-w-xl bg-white rounded-3xl shadow-2xl border border-gray-200 overflow-hidden text-left animate-scale-up">
+            {/* Modal Header */}
+            <div className="p-4 sm:p-5 border-b border-gray-100 flex items-center justify-between">
+              <div>
+                <span className="text-[10px] uppercase font-bold tracking-wider text-rose-800">
+                  Theme Preview
+                </span>
+                <h3 className="font-serif text-lg font-bold text-gray-900">
+                  {previewTheme.name}
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setPreviewTheme(null)}
+                className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100"
+              >
+                <X className="w-5 h-5" />
+              </button>
             </div>
 
-            <Input
-              label="Display Price (INR)"
-              type="number"
-              value={formData.priceDisplay}
-              onChange={(e) => setFormData({ ...formData, priceDisplay: e.target.value })}
-              placeholder="2499"
-            />
+            {/* Modal Content */}
+            <div className="p-5 sm:p-6 space-y-4 max-h-[75vh] overflow-y-auto">
+              <div className="relative aspect-[16/10] rounded-xl overflow-hidden bg-gray-100 border border-gray-200">
+                <img
+                  src={previewTheme.coverImage}
+                  alt={previewTheme.name}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+
+              <div>
+                <p className="text-xs text-gray-600 leading-relaxed">
+                  {previewTheme.description || 'No description provided.'}
+                </p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 text-xs">
+                <div className="p-3 rounded-xl bg-gray-50 border border-gray-100">
+                  <span className="text-gray-400 block text-[10px]">Category & Style</span>
+                  <span className="font-bold text-gray-900">{previewTheme.category}</span>
+                </div>
+                <div className="p-3 rounded-xl bg-gray-50 border border-gray-100">
+                  <span className="text-gray-400 block text-[10px]">Price Display</span>
+                  <span className="font-bold text-gray-900">₹{previewTheme.priceDisplay}</span>
+                </div>
+              </div>
+
+              {previewTheme.tags?.length > 0 && (
+                <div className="flex flex-wrap gap-1">
+                  {previewTheme.tags.map((tag, idx) => (
+                    <span
+                      key={idx}
+                      className="px-2 py-0.5 rounded-full text-[10px] bg-rose-50 text-rose-700 border border-rose-100 font-medium"
+                    >
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-4 bg-gray-50 border-t border-gray-100 flex items-center justify-between">
+              <a
+                href={`/themes/${previewTheme.slug}`}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#8B1D3B] hover:underline"
+              >
+                <ExternalLink className="w-3.5 h-3.5" />
+                <span>Open Public Preview Page</span>
+              </a>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const themeToEdit = previewTheme;
+                    setPreviewTheme(null);
+                    handleOpenWizard(themeToEdit);
+                  }}
+                  className="px-3.5 py-1.5 rounded-xl bg-[#8B1D3B] text-white text-xs font-bold hover:bg-[#6E142C] transition-colors"
+                >
+                  Edit Theme
+                </button>
+              </div>
+            </div>
           </div>
-
-          <Input
-            label="Cover Image URL"
-            value={formData.coverImage}
-            onChange={(e) => setFormData({ ...formData, coverImage: e.target.value })}
-            required
-            placeholder="https://images.unsplash.com/..."
-          />
-
-          <Textarea
-            label="Theme Description"
-            rows={2}
-            value={formData.description}
-            onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-            placeholder="Regal aesthetics featuring Lake Pichola arches and gold foil..."
-          />
-
-          <Input
-            label="Features (comma-separated)"
-            value={formData.features}
-            onChange={(e) => setFormData({ ...formData, features: e.target.value })}
-            placeholder="3D Envelope, Multi-day Itinerary, Live Countdown, Interactive Cards"
-          />
-
-          <div className="flex justify-end gap-3 pt-3">
-            <Button variant="outline" size="sm" onClick={() => setIsModalOpen(false)}>
-              Cancel
-            </Button>
-            <Button variant="gold" size="sm" type="submit" isLoading={isSubmitting}>
-              {editingTheme ? 'Update Theme' : 'Create Theme'}
-            </Button>
-          </div>
-        </form>
-      </Modal>
+        </div>
+      )}
     </div>
   );
 };

@@ -17,7 +17,9 @@
     "test:client": "npm run test --workspace=@shaadivibe/client",
     "test:server": "node --test server/tests/api.test.js",
     "test": "npm run test:client && npm run test:server",
-    "seed": "npm run seed --workspace=@shaadivibe/server"
+    "seed": "npm run seed --workspace=@shaadivibe/server",
+    "create-admin": "npm run create-admin --workspace=@shaadivibe/server",
+    "manage-admin": "npm run manage-admin --workspace=@shaadivibe/server"
   },
   "devDependencies": {
     "concurrently": "^8.2.2"

@@ -1,28 +1,42 @@
 import path from 'path';
 
 export const uploadPhotos = (req, res) => {
-  if (!req.files || req.files.length === 0) {
-    // If single file uploaded via req.file
-    if (req.file) {
-      const sanitizedName = path.basename(req.file.filename);
-      return res.status(201).json({
-        success: true,
-        message: 'Photo uploaded successfully.',
-        url: `/uploads/${sanitizedName}`,
-        urls: [`/uploads/${sanitizedName}`],
-      });
-    }
-    return res.status(400).json({ success: false, message: 'Please select at least one image to upload.' });
+  if (req.file) {
+    const sanitizedName = path.basename(req.file.filename);
+    const fileUrl = `/uploads/${sanitizedName}`;
+    return res.status(201).json({
+      success: true,
+      message: 'File uploaded successfully.',
+      url: fileUrl,
+      urls: [fileUrl],
+      filename: req.file.originalname,
+      size: req.file.size,
+      file: {
+        url: fileUrl,
+        filename: req.file.originalname,
+        size: req.file.size,
+      },
+    });
   }
 
-  const uploadedUrls = req.files.map((file) => {
+  if (!req.files || req.files.length === 0) {
+    return res.status(400).json({ success: false, message: 'Please select at least one file to upload.' });
+  }
+
+  const uploadedFiles = req.files.map((file) => {
     const sanitizedName = path.basename(file.filename);
-    return `/uploads/${sanitizedName}`;
+    return {
+      url: `/uploads/${sanitizedName}`,
+      filename: file.originalname,
+      size: file.size,
+    };
   });
 
   res.status(201).json({
     success: true,
-    message: `${uploadedUrls.length} photo(s) uploaded successfully.`,
-    urls: uploadedUrls,
+    message: `${uploadedFiles.length} file(s) uploaded successfully.`,
+    urls: uploadedFiles.map((f) => f.url),
+    url: uploadedFiles[0]?.url,
+    files: uploadedFiles,
   });
 };
