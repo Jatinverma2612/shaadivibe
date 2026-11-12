@@ -14,10 +14,11 @@ import { connectDB, disconnectDB } from './config/db.js';
 import { seedDatabase } from '../scripts/seedData.js';
 
 const PORT = process.env.PORT || 5000;
+const HOST = process.env.HOST || (process.env.NODE_ENV === 'production' ? '0.0.0.0' : '127.0.0.1');
 
 const startServer = async () => {
-  const server = app.listen(PORT, '127.0.0.1', () => {
-    console.log(`[ShaadiVibe Server] Running securely at http://127.0.0.1:${PORT}`);
+  const server = app.listen(PORT, HOST, () => {
+    console.log(`[ShaadiVibe Server] Running securely on http://${HOST}:${PORT}`);
   });
 
   const conn = await connectDB();

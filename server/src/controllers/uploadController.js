@@ -1,9 +1,11 @@
 import path from 'path';
 
 export const uploadPhotos = (req, res) => {
+  const baseUrl = process.env.BACKEND_URL ? process.env.BACKEND_URL.replace(/\/+$/, '') : '';
+
   if (req.file) {
     const sanitizedName = path.basename(req.file.filename);
-    const fileUrl = `/uploads/${sanitizedName}`;
+    const fileUrl = baseUrl ? `${baseUrl}/uploads/${sanitizedName}` : `/uploads/${sanitizedName}`;
     return res.status(201).json({
       success: true,
       message: 'File uploaded successfully.',
@@ -25,8 +27,9 @@ export const uploadPhotos = (req, res) => {
 
   const uploadedFiles = req.files.map((file) => {
     const sanitizedName = path.basename(file.filename);
+    const fileUrl = baseUrl ? `${baseUrl}/uploads/${sanitizedName}` : `/uploads/${sanitizedName}`;
     return {
-      url: `/uploads/${sanitizedName}`,
+      url: fileUrl,
       filename: file.originalname,
       size: file.size,
     };
