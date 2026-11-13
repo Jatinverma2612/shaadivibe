@@ -117,7 +117,7 @@ export const Header = () => {
           {/* Brand Logo */}
           <Link
             to="/"
-            className="flex items-center gap-2.5 sm:gap-3 group focus:outline-none focus:ring-2 focus:ring-[#B38738] rounded-lg p-1"
+            className="flex items-center gap-2.5 sm:gap-3 group outline-none focus:outline-none focus-visible:ring-0 select-none p-1"
             aria-label="ShaadiVibe Home"
           >
             <div
@@ -180,7 +180,7 @@ export const Header = () => {
             {/* Wishlist Link with Dynamic Badge */}
             <Link
               to="/wishlist"
-              className="relative p-2 rounded-full text-[#72092C] hover:text-[#4A0E17] hover:bg-[#FAF2EB]/70 transition-colors focus:outline-none focus:ring-2 focus:ring-[#B38738]"
+              className="relative p-2 rounded-full text-[#72092C] hover:text-[#4A0E17] hover:bg-[#FAF2EB]/70 transition-colors outline-none focus:outline-none focus-visible:ring-1 focus-visible:ring-[#B38738]"
               title={`Wishlist (${wishlistCount} items)`}
               aria-label={`Wishlist (${wishlistCount} items)`}
             >
@@ -199,7 +199,7 @@ export const Header = () => {
             {/* Cart Link with Dynamic Badge */}
             <Link
               to="/cart"
-              className="relative p-2 rounded-full text-[#72092C] hover:text-[#4A0E17] hover:bg-[#FAF2EB]/70 transition-colors focus:outline-none focus:ring-2 focus:ring-[#B38738]"
+              className="relative p-2 rounded-full text-[#72092C] hover:text-[#4A0E17] hover:bg-[#FAF2EB]/70 transition-colors outline-none focus:outline-none focus-visible:ring-1 focus-visible:ring-[#B38738]"
               title={`Shopping Cart (${cartCount} items)`}
               aria-label={`Shopping Cart (${cartCount} items)`}
             >
@@ -217,7 +217,7 @@ export const Header = () => {
                 <button
                   type="button"
                   onClick={() => setUserMenuOpen((prev) => !prev)}
-                  className="relative p-2 rounded-full text-[#72092C] hover:text-[#4A0E17] hover:bg-[#FAF2EB]/70 transition-colors focus:outline-none focus:ring-2 focus:ring-[#B38738] flex items-center justify-center"
+                  className="relative p-2 rounded-full text-[#72092C] hover:text-[#4A0E17] hover:bg-[#FAF2EB]/70 transition-colors outline-none focus:outline-none focus-visible:ring-1 focus-visible:ring-[#B38738] flex items-center justify-center"
                   title={`Account: ${user?.name || 'Customer'}`}
                   aria-label="User Account Menu"
                   aria-expanded={userMenuOpen}
@@ -303,7 +303,7 @@ export const Header = () => {
             ) : (
               <Link
                 to="/login"
-                className="p-2 rounded-full text-[#72092C] hover:text-[#4A0E17] hover:bg-[#FAF2EB]/70 transition-colors focus:outline-none focus:ring-2 focus:ring-[#B38738]"
+                className="p-2 rounded-full text-[#72092C] hover:text-[#4A0E17] hover:bg-[#FAF2EB]/70 transition-colors outline-none focus:outline-none focus-visible:ring-1 focus-visible:ring-[#B38738]"
                 title="Sign In / Register"
                 aria-label="Account Login or Register"
               >
@@ -314,7 +314,7 @@ export const Header = () => {
             {/* Create Invite CTA Button */}
             <Link
               to="/customize/theme-1"
-              className="px-4 py-1.5 sm:py-2 rounded-full bg-[#72092C] hover:bg-[#5C061D] text-white font-semibold text-xs flex items-center gap-1.5 shadow-sm hover:shadow-md transition-all focus:outline-none focus:ring-2 focus:ring-[#72092C] focus:ring-offset-1 shrink-0 ml-1"
+              className="px-4 py-1.5 sm:py-2 rounded-full bg-[#72092C] hover:bg-[#5C061D] text-white font-semibold text-xs flex items-center gap-1.5 shadow-sm hover:shadow-md transition-all outline-none focus:outline-none focus-visible:ring-2 focus-visible:ring-[#72092C] focus-visible:ring-offset-1 shrink-0 ml-1"
             >
               <Sparkles className="w-3.5 h-3.5 text-[#F5E6CA]" />
               <span>Create Invite</span>
@@ -389,7 +389,7 @@ export const Header = () => {
             <button
               ref={menuButtonRef}
               onClick={() => setMobileMenuOpen((prev) => !prev)}
-              className="p-1.5 rounded-lg text-[#4A3B32] hover:text-[#72092C] hover:bg-[#FAF2EB] focus:outline-none focus:ring-2 focus:ring-[#B38738]"
+              className="p-1.5 rounded-lg text-[#4A3B32] hover:text-[#72092C] hover:bg-[#FAF2EB] outline-none focus:outline-none focus-visible:ring-1 focus-visible:ring-[#B38738]"
               aria-label={mobileMenuOpen ? 'Close navigation menu' : 'Open navigation menu'}
               aria-expanded={mobileMenuOpen}
               aria-controls="mobile-nav-menu"
